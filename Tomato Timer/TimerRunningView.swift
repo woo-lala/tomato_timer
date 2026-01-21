@@ -66,17 +66,17 @@ struct TimerRunningView: View {
                     
                     // Bottom Controls
                     HStack(spacing: 40) {
-                        // Stop Button (Destructive - Left)
+                        // Stop Button
                         VStack(spacing: 8) {
                             Button(action: {
                                 dismiss()
                             }) {
                                 Circle()
                                     .fill(Color.red.opacity(0.1))
-                                    .frame(width: 60, height: 60)
+                                    .frame(width: 72, height: 72)
                                     .overlay(
                                         Image(systemName: "stop.fill")
-                                            .font(.system(size: 24))
+                                            .font(.system(size: 26))
                                             .foregroundColor(.red)
                                     )
                             }
@@ -85,39 +85,38 @@ struct TimerRunningView: View {
                                 .foregroundColor(.gray)
                         }
                         
-                        // Pause/Play Button (Primary - Center)
+                        // Pause/Play Button (Same Size)
                         VStack(spacing: 8) {
                             Button(action: {
                                 isPaused.toggle()
                             }) {
                                 Circle()
                                     .fill(AppColor.primary)
-                                    .frame(width: 80, height: 80)
-                                    .shadow(color: AppColor.primary.opacity(0.3), radius: 10, x: 0, y: 5)
+                                    .frame(width: 72, height: 72)
+                                    .shadow(color: AppColor.primary.opacity(0.3), radius: 8, x: 0, y: 4)
                                     .overlay(
                                         Image(systemName: isPaused ? "play.fill" : "pause.fill")
-                                            .font(.system(size: 32, weight: .bold)) // Slightly bolder
+                                            .font(.system(size: 28, weight: .bold))
                                             .foregroundColor(.white)
-                                            .offset(x: isPaused ? 2 : 0) // Optical centering for play icon
+                                            .offset(x: isPaused ? 2 : 0)
                                     )
                             }
                             Text(isPaused ? "재생" : "일시정지")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(AppColor.primary)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.gray) // Matched with others for consistency
                         }
-                        .padding(.bottom, 20) // Push up slightly to emphasize center
                         
-                        // Next Button (Secondary - Right)
+                        // Next Button
                         VStack(spacing: 8) {
                             Button(action: {
                                 // Next Step Logic
                             }) {
                                 Circle()
                                     .fill(Color(UIColor.systemGray6))
-                                    .frame(width: 60, height: 60)
+                                    .frame(width: 72, height: 72)
                                     .overlay(
                                         Image(systemName: "forward.fill")
-                                            .font(.system(size: 24))
+                                            .font(.system(size: 26))
                                             .foregroundColor(.gray)
                                     )
                             }
