@@ -27,129 +27,133 @@ struct RoutineCreateView: View {
     ]
     
     var body: some View {
-        VStack(spacing: 0) {
-            List {
-                // MARK: - Header Section
-                Section {
-                    VStack(alignment: .leading, spacing: 24) {
-                        // Routine Name
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("루틴 이름")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.gray)
-                                .padding(.leading, 4)
+        ZStack {
+            Color(UIColor.systemGroupedBackground)
+                .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // MARK: - Header Section
+                        VStack(alignment: .leading, spacing: 24) {
+                            // Routine Name
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("루틴 이름")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.gray)
+                                    .padding(.leading, 4)
+                                
+                                TextField("새 루틴", text: $routineName)
+                                    .font(.system(size: 17))
+                                    .padding(16)
+                                    .background(Color.white)
+                                    .cornerRadius(12)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(Color(UIColor.systemGray5), lineWidth: 1)
+                                    )
+                            }
                             
-                            TextField("새 루틴", text: $routineName)
-                                .font(.system(size: 17))
-                                .padding(16)
-                                .background(Color.white)
-                                .cornerRadius(12)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Color(UIColor.systemGray5), lineWidth: 1)
-                                )
-                        }
-                        
-                        // Templates
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("템플릿 루틴")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.gray)
-                                .padding(.leading, 4)
-                            
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 8) {
-                                    ForEach(templates) { template in
-                                        Button(action: {
-                                            applyTemplate(template)
-                                        }) {
-                                            HStack(spacing: 6) {
-                                                Text(template.name)
-                                                    .font(.system(size: 15, weight: .medium))
-                                                    .foregroundColor(.primary)
-                                                Text("(\(template.display))")
-                                                    .font(.system(size: 13))
-                                                    .foregroundColor(.gray)
+                            // Templates
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("템플릿 루틴")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.gray)
+                                    .padding(.leading, 4)
+                                
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 8) {
+                                        ForEach(templates) { template in
+                                            Button(action: {
+                                                applyTemplate(template)
+                                            }) {
+                                                HStack(spacing: 6) {
+                                                    Text(template.name)
+                                                        .font(.system(size: 15, weight: .medium))
+                                                        .foregroundColor(.primary)
+                                                    Text("(\(template.display))")
+                                                        .font(.system(size: 13))
+                                                        .foregroundColor(.gray)
+                                                }
+                                                .padding(.vertical, 10)
+                                                .padding(.horizontal, 16)
+                                                .background(Color.white)
+                                                .clipShape(Capsule())
+                                                .overlay(
+                                                    Capsule()
+                                                        .stroke(Color(UIColor.systemGray4), lineWidth: 1)
+                                                )
                                             }
-                                            .padding(.vertical, 10)
-                                            .padding(.horizontal, 16)
-                                            .background(Color(UIColor.systemGray6))
-                                            .clipShape(Capsule())
                                         }
                                     }
                                 }
                             }
                         }
-                    }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, AppSpacing.mediumPlus)
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                }
-                
-                // MARK: - Step List Section
-                Section(header: Text("단계 목록").font(.system(size: 14, weight: .medium)).foregroundColor(.gray)) {
-                    ForEach($steps) { $step in
-                        RoutineStepRow(step: $step, onDelete: {
-                            if let index = steps.firstIndex(where: { $0.id == step.id }) {
-                                steps.remove(at: index)
+                        .padding(.horizontal, AppSpacing.mediumPlus)
+                        .padding(.top, 24)
+                        
+                        // MARK: - Step List Section
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("단계 목록")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.gray)
+                                .padding(.leading, 4)
+                            
+                            VStack(spacing: 12) {
+                                ForEach($steps) { $step in
+                                    RoutineStepRow(step: $step, draggingItem: $draggingItem, onDelete: {
+                                        if let index = steps.firstIndex(where: { $0.id == step.id }) {
+                                            steps.remove(at: index)
+                                        }
+                                    })
+                                    .onDrop(of: [UTType.text], delegate: DragRelocateDelegate(item: step, listData: $steps, current: $draggingItem))
+                                }
                             }
-                        })
-                        .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(top: 4, leading: AppSpacing.mediumPlus, bottom: 4, trailing: AppSpacing.mediumPlus))
-                        .listRowBackground(Color.clear)
-                        .onDrag {
-                            self.draggingItem = step
-                            return NSItemProvider(object: step.id.uuidString as NSString)
                         }
-                        .onDrop(of: [UTType.text], delegate: DragRelocateDelegate(item: step, listData: $steps, current: $draggingItem))
+                        .padding(.horizontal, AppSpacing.mediumPlus)
+                        
+                        // Add Button Section
+                        Button(action: {
+                            addStep()
+                        }) {
+                            HStack {
+                                Image(systemName: "plus")
+                                Text("단계 추가")
+                            }
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.white) // Changed to white to pop on grouped background
+                            .cornerRadius(12)
+                            .shadow(color: Color.black.opacity(0.02), radius: 2, x: 0, y: 1)
+                        }
+                        .padding(.horizontal, AppSpacing.mediumPlus)
+                        .padding(.bottom, 32)
+                        .buttonStyle(PlainButtonStyle())
                     }
                 }
                 
-                // Add Button Section
-                Section {
+                // MARK: - Bottom Action Button
+                VStack {
                     Button(action: {
-                        addStep()
+                        dismiss()
                     }) {
-                        HStack {
-                            Image(systemName: "plus")
-                            Text("단계 추가")
-                        }
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.primary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Color(UIColor.systemGray6))
-                        .cornerRadius(12)
+                        Text("저장")
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(AppColor.primary)
+                            .cornerRadius(AppRadius.standard)
                     }
-                    .listRowInsets(EdgeInsets(top: 12, leading: AppSpacing.mediumPlus, bottom: 32, trailing: AppSpacing.mediumPlus))
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                    .buttonStyle(PlainButtonStyle())
+                    .padding(.horizontal, AppSpacing.mediumPlus)
+                    .padding(.bottom, 10)
                 }
+                .padding(.top, 10)
+                .background(Color.white)
+                .shadow(color: Color.black.opacity(0.05), radius: 8, y: -4)
             }
-            .listStyle(.plain)
-            
-            // MARK: - Bottom Action Button
-            VStack {
-                Button(action: {
-                    dismiss()
-                }) {
-                    Text("저장")
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(AppColor.primary)
-                        .cornerRadius(AppRadius.standard)
-                }
-                .padding(.horizontal, AppSpacing.mediumPlus)
-                .padding(.bottom, 10)
-            }
-            .padding(.top, 10)
-            .background(Color.white)
-            .shadow(color: Color.black.opacity(0.05), radius: 8, y: -4)
         }
         .navigationTitle("루틴 만들기")
         .navigationBarTitleDisplayMode(.inline)
@@ -214,14 +218,20 @@ struct RoutineTemplate: Identifiable {
 
 struct RoutineStepRow: View {
     @Binding var step: RoutineStep
+    @Binding var draggingItem: RoutineStep?
     var onDelete: () -> Void
     
     var body: some View {
         HStack(spacing: 8) {
-            // Drag Handle
+            // Drag Handle (Left)
             Image(systemName: "line.3.horizontal")
                 .foregroundColor(.gray)
                 .font(.system(size: 20))
+                .padding(.trailing, 4)
+                .onDrag {
+                    self.draggingItem = step
+                    return NSItemProvider(object: step.id.uuidString as NSString)
+                }
             
             // Name Input
             TextField("단계 이름", text: $step.name)
@@ -230,26 +240,25 @@ struct RoutineStepRow: View {
                 .padding(.horizontal, 12)
                 .background(Color(UIColor.systemGray6))
                 .cornerRadius(8)
-                .frame(width: 150)
+                .frame(minWidth: 100, maxWidth: .infinity)
+                .layoutPriority(1)
             
             // Time Input (Numbers Only)
             TimeInput(text: $step.duration)
-                .frame(width: 70)
+                .frame(width: 120)
                 .background(Color(UIColor.systemGray6))
                 .cornerRadius(6)
-            
-            Spacer().frame(width: 4)
             
             // Delete Icon
             Button(action: onDelete) {
                 Image(systemName: "trash")
                     .foregroundColor(.red)
                     .font(.system(size: 16))
+                    .padding(8)
             }
-            
-            Spacer()
+            .buttonStyle(.plain)
         }
-        .padding(12)
+        .padding(EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 4))
         .background(Color.white)
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.02), radius: 2, x: 0, y: 1)

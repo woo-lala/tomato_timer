@@ -16,11 +16,6 @@ struct RoutineListView: View {
         Routine(name: "시험 기간", timeSteps: "50m · 10m · 50m", lastRun: "어제 오후 3:15")
     ]
     
-    let templates = [
-        Routine(name: "출근", timeSteps: "30/10/20", lastRun: ""),
-        Routine(name: "수업", timeSteps: "50/10/50/10", lastRun: "")
-    ]
-    
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -52,30 +47,14 @@ struct RoutineListView: View {
                         .foregroundColor(.primary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color(UIColor.systemGray6))
+                        .background(Color.white)
                         .cornerRadius(12)
                     }
                     .padding(.horizontal, AppSpacing.mediumPlus)
-                    
-                    // Section: 템플릿 루틴
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("템플릿 루틴")
-                            .font(AppFont.headline())
-                            .foregroundColor(AppColor.textSecondary)
-                            .padding(.horizontal, AppSpacing.mediumPlus)
-                        
-                        HStack(spacing: 10) {
-                            ForEach(templates) { template in
-                                TemplatePill(routine: template)
-                            }
-                            Spacer()
-                        }
-                        .padding(.horizontal, AppSpacing.mediumPlus)
-                    }
                 }
                 .padding(.bottom, 40)
             }
-            .background(Color.white.edgesIgnoringSafeArea(.all))
+            .background(Color(UIColor.systemGroupedBackground).ignoresSafeArea(.all))
             .preferredColorScheme(.light)
             .navigationTitle("내 루틴")
             .navigationBarTitleDisplayMode(.inline)
@@ -135,30 +114,6 @@ struct RoutineCard: View {
             RoundedRectangle(cornerRadius: AppRadius.standard)
                 .stroke(Color(hex: "F2F2F7"), lineWidth: 1)
         )
-    }
-}
-
-struct TemplatePill: View {
-    let routine: Routine
-    
-    var body: some View {
-        Button(action: {
-            // Apply template action
-        }) {
-            HStack(spacing: 6) {
-                Text(routine.name)
-                    .font(AppFont.callout())
-                    .foregroundColor(AppColor.textPrimary)
-                
-                Text("(\(routine.timeSteps))")
-                    .font(AppFont.caption())
-                    .foregroundColor(AppColor.textSecondary)
-            }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 16)
-            .background(Color(hex: "F2F2F7"))
-            .clipShape(Capsule())
-        }
     }
 }
 

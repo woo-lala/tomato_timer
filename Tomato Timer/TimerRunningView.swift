@@ -6,11 +6,12 @@ struct TimerRunningView: View {
     // Mock Data State
     @State private var timeRemaining: String = "04:32"
     @State private var isScreenOn: Bool = true
+    @State private var isPaused: Bool = false
     
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.white.edgesIgnoringSafeArea(.all)
+                Color(UIColor.systemGroupedBackground).ignoresSafeArea()
                 
                 VStack(spacing: 0) {
                     Spacer()
@@ -64,48 +65,69 @@ struct TimerRunningView: View {
                     Spacer()
                     
                     // Bottom Controls
-                    HStack(spacing: 16) {
-                        // Next Button (Neutral)
-                        Button(action: {
-                            // Next Step
-                        }) {
-                            Text("다음")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundColor(.black)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 18)
-                                .background(Color(UIColor.systemGray5))
-                                .cornerRadius(AppRadius.standard) // 16
-                        }
-                        
-                        // Pause Button (Primary)
-                        Button(action: {
-                            // Pause
-                        }) {
-                            Text("일시정지")
-                                .font(.system(size: 17, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 18)
-                                .background(AppColor.primary)
-                                .cornerRadius(AppRadius.standard) // 16
-                        }
-                        
-                        // Stop Button (Red)
-                        Button(action: {
-                            dismiss()
-                        }) {
+                    HStack(spacing: 40) {
+                        // Stop Button (Destructive - Left)
+                        VStack(spacing: 8) {
+                            Button(action: {
+                                dismiss()
+                            }) {
+                                Circle()
+                                    .fill(Color.red.opacity(0.1))
+                                    .frame(width: 60, height: 60)
+                                    .overlay(
+                                        Image(systemName: "stop.fill")
+                                            .font(.system(size: 24))
+                                            .foregroundColor(.red)
+                                    )
+                            }
                             Text("정지")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 18)
-                                .background(Color.mdDestructive)
-                                .cornerRadius(AppRadius.standard) // 16
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.gray)
+                        }
+                        
+                        // Pause/Play Button (Primary - Center)
+                        VStack(spacing: 8) {
+                            Button(action: {
+                                isPaused.toggle()
+                            }) {
+                                Circle()
+                                    .fill(AppColor.primary)
+                                    .frame(width: 80, height: 80)
+                                    .shadow(color: AppColor.primary.opacity(0.3), radius: 10, x: 0, y: 5)
+                                    .overlay(
+                                        Image(systemName: isPaused ? "play.fill" : "pause.fill")
+                                            .font(.system(size: 32, weight: .bold)) // Slightly bolder
+                                            .foregroundColor(.white)
+                                            .offset(x: isPaused ? 2 : 0) // Optical centering for play icon
+                                    )
+                            }
+                            Text(isPaused ? "재생" : "일시정지")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(AppColor.primary)
+                        }
+                        .padding(.bottom, 20) // Push up slightly to emphasize center
+                        
+                        // Next Button (Secondary - Right)
+                        VStack(spacing: 8) {
+                            Button(action: {
+                                // Next Step Logic
+                            }) {
+                                Circle()
+                                    .fill(Color(UIColor.systemGray6))
+                                    .frame(width: 60, height: 60)
+                                    .overlay(
+                                        Image(systemName: "forward.fill")
+                                            .font(.system(size: 24))
+                                            .foregroundColor(.gray)
+                                    )
+                            }
+                            Text("다음")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.gray)
                         }
                     }
-                    .padding(.horizontal, AppSpacing.mediumPlus) // 20
-                    .padding(.bottom, 40)
+                    .padding(.horizontal, AppSpacing.mediumPlus)
+                    .padding(.bottom, 20)
                 }
             }
             .navigationTitle("근로 준비")
