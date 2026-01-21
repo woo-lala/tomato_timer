@@ -1,138 +1,84 @@
+
 import SwiftUI
 
 // Mock Data Model
 struct Routine: Identifiable {
     let id = UUID()
     let name: String
-    let icon: String // Emoji
-    let duration: String
-    let themeColor: Color
+    let timeSteps: String
+    let lastRun: String
 }
 
 struct RoutineListView: View {
     // Mock Data
     @State private var myRoutines = [
-        Routine(name: "Focus", icon: "🧠", duration: "25 min", themeColor: AppColor.primary),
-        Routine(name: "Rest", icon: "☕️", duration: "5 min", themeColor: Color(hex: "26BA67")) // Fitness Green-ish
+        Routine(name: "집중 루틴", timeSteps: "25m · 5m · 25m · 15m", lastRun: "오늘 오전 10:30"),
+        Routine(name: "시험 기간", timeSteps: "50m · 10m · 50m", lastRun: "어제 오후 3:15")
     ]
     
     let templates = [
-        Routine(name: "Work", icon: "💼", duration: "50 min", themeColor: Color(hex: "FFC23F")), // Learning Gold
-        Routine(name: "Study", icon: "📚", duration: "45 min", themeColor: Color(hex: "E94E3D")), // Youtube Red-ish
-        Routine(name: "Exercise", icon: "🏃", duration: "30 min", themeColor: Color(hex: "26BA67")) // Fitness Green
+        Routine(name: "출근", timeSteps: "30/10/20", lastRun: ""),
+        Routine(name: "수업", timeSteps: "50/10/50/10", lastRun: "")
     ]
-    
-    @State private var showToast = false
     
     var body: some View {
         NavigationStack {
-            ZStack {
-                // Background
-                AppColor.background
-                    .edgesIgnoringSafeArea(.all)
-                
-                VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 32) {
                     
-                    // Main Content
-                    ScrollView {
-                        VStack(spacing: AppSpacing.large) { // 24
-                            
-                            // Section 2: My Routines
-                            VStack(alignment: .leading, spacing: AppSpacing.medium) {
-                                Text("My Routines")
-                                    .font(AppFont.title())
-                                    .foregroundColor(AppColor.textPrimary)
-                                    .padding(.horizontal, AppSpacing.mediumPlus)
-                                
-                                ForEach(myRoutines) { routine in
-                                    RoutineCard(routine: routine)
-                                        .padding(.horizontal, AppSpacing.mediumPlus)
-                                }
-                            }
-                            .padding(.top, AppSpacing.mediumPlus)
-                            
-                            // Section 3: Create Button
-                            Button(action: {
-                                saveRoutine()
-                            }) {
-                                HStack {
-                                    Image(systemName: "plus")
-                                        .font(AppFont.button())
-                                    Text("Create New Routine")
-                                        .font(AppFont.button())
-                                }
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [AppColor.primary.opacity(0.8), AppColor.primaryStrong]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .cornerRadius(AppRadius.standard)
-                                .shadow(color: AppColor.primary.opacity(0.3), radius: 10, x: 0, y: 5)
-                            }
+                    // Section: 내 루틴
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("내 루틴")
+                            .font(AppFont.title())
+                            .foregroundColor(.black)
                             .padding(.horizontal, AppSpacing.mediumPlus)
-                            
-                            // Section 4: Template Routines
-                            VStack(alignment: .leading, spacing: AppSpacing.smallPlus) {
-                                Text("Template Routines")
-                                    .font(AppFont.headline())
-                                    .foregroundColor(AppColor.textSecondary)
-                                    .padding(.horizontal, AppSpacing.mediumPlus)
-                                
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: AppSpacing.medium) {
-                                        ForEach(templates) { template in
-                                            TemplateRoutineCard(routine: template)
-                                        }
-                                    }
-                                    .padding(.horizontal, AppSpacing.mediumPlus)
-                                    .padding(.bottom, 20) // Shadow space
-                                }
+                        
+                        VStack(spacing: 12) {
+                            ForEach(myRoutines) { routine in
+                                RoutineCard(routine: routine)
                             }
                         }
+                        .padding(.horizontal, AppSpacing.mediumPlus)
                     }
-                }
-                .navigationTitle("Tomato Timer")
-                .navigationBarTitleDisplayMode(.inline)
-                
-                // Toast Message
-                if showToast {
-                    VStack {
-                        Spacer()
-                        HStack {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(Color(hex: "26BA67")) // Success Green
-                            Text("Saved to Local Storage (Core Data)")
-                                .font(AppFont.callout())
+                    .padding(.top, AppSpacing.medium)
+                    
+                    // Section: 루틴 추가 버튼
+                    NavigationLink(destination: RoutineCreateView()) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "plus")
+                            Text("루틴 추가")
                         }
-                        .padding()
-                        .background(AppColor.surface)
-                        .cornerRadius(25)
-                        .shadow(color: AppColor.shadow, radius: 10, x: 0, y: 5)
-                        .padding(.bottom, AppSpacing.mediumPlus)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.primary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color(UIColor.systemGray6))
+                        .cornerRadius(12)
                     }
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .zIndex(100)
+                    .padding(.horizontal, AppSpacing.mediumPlus)
+                    
+                    // Section: 템플릿 루틴
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("템플릿 루틴")
+                            .font(AppFont.headline())
+                            .foregroundColor(AppColor.textSecondary)
+                            .padding(.horizontal, AppSpacing.mediumPlus)
+                        
+                        HStack(spacing: 10) {
+                            ForEach(templates) { template in
+                                TemplatePill(routine: template)
+                            }
+                            Spacer()
+                        }
+                        .padding(.horizontal, AppSpacing.mediumPlus)
+                    }
                 }
+                .padding(.bottom, 40)
             }
-        }
-    }
-    
-    private func saveRoutine() {
-        // Simulate save action
-        withAnimation(.spring()) {
-            showToast = true
-        }
-        
-        // Hide after delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-            withAnimation {
-                showToast = false
-            }
+            .background(Color.white.edgesIgnoringSafeArea(.all))
+            .preferredColorScheme(.light)
+            .navigationTitle("내 루틴")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
@@ -143,69 +89,76 @@ struct RoutineCard: View {
     let routine: Routine
     
     var body: some View {
-        HStack(spacing: AppSpacing.medium) {
-            ZStack {
-                Circle()
-                    .fill(routine.themeColor.opacity(0.15))
-                    .frame(width: 50, height: 50)
+        HStack {
+            VStack(alignment: .leading, spacing: 8) {
+                // Title and Time Steps
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(routine.name)
+                        .font(AppFont.headline())
+                        .foregroundColor(AppColor.textPrimary)
+                    
+                    Text(routine.timeSteps)
+                        .font(AppFont.body())
+                        .foregroundColor(AppColor.textSecondary)
+                }
                 
-                Text(routine.icon)
-                    .font(.system(size: 24))
-            }
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(routine.name)
-                    .font(AppFont.headline())
-                    .foregroundColor(AppColor.textPrimary)
-                
-                Text(routine.duration)
-                    .font(AppFont.body())
-                    .foregroundColor(AppColor.textSecondary)
+                // Last Run Badge
+                if !routine.lastRun.isEmpty {
+                    Text("마지막 실행: \(routine.lastRun)")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(Color.gray)
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)
+                        .background(Color(hex: "F2F2F7"))
+                        .cornerRadius(8)
+                }
             }
             
             Spacer()
             
-            Image(systemName: "play.circle.fill")
-                .font(.system(size: 32))
-                .foregroundColor(AppColor.textSecondary.opacity(0.3))
+            // Play Button
+            NavigationLink(destination: TimerRunningView()) {
+                Image(systemName: "play.fill")
+                    .font(.system(size: 18))
+                    .foregroundColor(.white)
+                    .padding(10)
+                    .background(AppColor.primary)
+                    .clipShape(Circle())
+                    .shadow(color: AppColor.primary.opacity(0.4), radius: 4, x: 0, y: 2)
+            }
         }
-        .padding(AppSpacing.medium)
-        .background(AppColor.surface)
+        .padding(16)
+        .background(Color.white)
         .cornerRadius(AppRadius.standard)
-        .shadow(color: AppColor.shadow, radius: 5, x: 0, y: 2)
+        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+        .overlay(
+            RoundedRectangle(cornerRadius: AppRadius.standard)
+                .stroke(Color(hex: "F2F2F7"), lineWidth: 1)
+        )
     }
 }
 
-struct TemplateRoutineCard: View {
+struct TemplatePill: View {
     let routine: Routine
     
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.smallPlus) {
-            HStack {
-                Text(routine.icon)
-                    .font(AppFont.title())
-                    .padding(10)
-                    .background(routine.themeColor.opacity(0.2))
-                    .clipShape(Circle())
+        Button(action: {
+            // Apply template action
+        }) {
+            HStack(spacing: 6) {
+                Text(routine.name)
+                    .font(AppFont.callout())
+                    .foregroundColor(AppColor.textPrimary)
                 
-                Spacer()
+                Text("(\(routine.timeSteps))")
+                    .font(AppFont.caption())
+                    .foregroundColor(AppColor.textSecondary)
             }
-            
-            Spacer()
-            
-            Text(routine.name)
-                .font(AppFont.heading())
-                .foregroundColor(AppColor.textPrimary)
-            
-            Text(routine.duration)
-                .font(AppFont.caption())
-                .foregroundColor(AppColor.textSecondary)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 16)
+            .background(Color(hex: "F2F2F7"))
+            .clipShape(Capsule())
         }
-        .padding(AppSpacing.medium)
-        .frame(width: 140, height: 140)
-        .background(AppColor.surface)
-        .cornerRadius(AppRadius.standard)
-        .shadow(color: AppColor.shadow, radius: 8, x: 0, y: 4)
     }
 }
 
