@@ -58,6 +58,15 @@ struct RoutineListView: View {
             .preferredColorScheme(.light)
             .navigationTitle("내 루틴")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    NavigationLink(destination: SettingsView()) {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 17, weight: .regular))
+                            .foregroundColor(AppColor.textSecondary)
+                    }
+                }
+            }
         }
     }
 }
@@ -66,6 +75,8 @@ struct RoutineListView: View {
 
 struct RoutineCard: View {
     let routine: Routine
+    @State private var showConfigSheet = false
+    @State private var startTimer = false
     
     var body: some View {
         HStack {
@@ -96,7 +107,9 @@ struct RoutineCard: View {
             Spacer()
             
             // Play Button
-            NavigationLink(destination: TimerRunningView()) {
+            Button(action: {
+                showConfigSheet = true
+            }) {
                 Image(systemName: "play.fill")
                     .font(.system(size: 18))
                     .foregroundColor(.white)
@@ -114,6 +127,16 @@ struct RoutineCard: View {
             RoundedRectangle(cornerRadius: AppRadius.standard)
                 .stroke(Color(hex: "F2F2F7"), lineWidth: 1)
         )
+        .sheet(isPresented: $showConfigSheet) {
+            NotificationModeSheet(onStart: {
+                startTimer = true
+            })
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+        }
+        .navigationDestination(isPresented: $startTimer) {
+            TimerRunningView()
+        }
     }
 }
 

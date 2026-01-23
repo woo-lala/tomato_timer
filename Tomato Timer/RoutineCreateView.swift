@@ -9,6 +9,7 @@ struct RoutineCreateView: View {
         RoutineStep(name: "작업", duration: "2500"),
         RoutineStep(name: "휴식", duration: "0500")
     ]
+    @State private var isTemplate: Bool = false
     
     @State private var draggingItem: RoutineStep?
     
@@ -54,7 +55,23 @@ struct RoutineCreateView: View {
                                     )
                             }
                             
-                            // Templates
+                            // Template Toggle
+                            HStack {
+                                Text("템플릿으로 저장")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.gray)
+                                    .padding(.leading, 4)
+                                
+                                Spacer()
+                                
+                                Toggle("", isOn: $isTemplate)
+                                    .labelsHidden()
+                                    .scaleEffect(0.8)
+                                    .tint(AppColor.primary)
+                            }
+                            .padding(.top, -8) // Pull it closer to the field above
+                            
+                            // Templates Selection (Existing)
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("템플릿 루틴")
                                     .font(.system(size: 14, weight: .medium))
