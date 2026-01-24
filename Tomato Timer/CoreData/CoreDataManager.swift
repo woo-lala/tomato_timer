@@ -62,12 +62,26 @@ class CoreDataManager {
         }
     }
 
-    func updateRoutine(_ routine: Routine, name: String? = nil, isArchived: Bool? = nil) {
+    func updateRoutine(_ routine: Routine, name: String? = nil, isArchived: Bool? = nil, isTemplate: Bool? = nil) {
         if let name = name { routine.name = name }
         if let isArchived = isArchived { routine.isArchived = isArchived }
+        if let isTemplate = isTemplate { routine.isTemplate = isTemplate }
         routine.updatedAt = Date()
         
         saveContext()
+    }
+
+    func fetchTemplateRoutines() -> [Routine] {
+        let request: NSFetchRequest<Routine> = Routine.fetchRequest()
+        request.predicate = NSPredicate(format: "isTemplate == true AND isArchived == false")
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \Routine.createdAt, ascending: false)]
+        
+        do {
+            return try context.fetch(request)
+        } catch {
+            print("Error fetching template routines: \(error.localizedDescription)")
+            return []
+        }
     }
 
     func deleteRoutine(_ routine: Routine) {

@@ -12,10 +12,11 @@ struct RoutineCreateView: View {
         RoutineStepData(name: "휴식", duration: "0500")
     ]
     @State private var isTemplate: Bool = false
+    @State private var savedTemplates: [Routine] = []
     
     @State private var draggingItem: RoutineStepData?
     
-    let templates = [
+    let defaultTemplates = [
         RoutineTemplate(name: "출근 루틴", display: "30/10/20", steps: [
             RoutineStepData(name: "준비", duration: "3000"),
             RoutineStepData(name: "이동", duration: "1000"),
@@ -82,7 +83,8 @@ struct RoutineCreateView: View {
                                 
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 8) {
-                                        ForEach(templates) { template in
+                                        // Default templates
+                                        ForEach(defaultTemplates) { template in
                                             Button(action: {
                                                 applyTemplate(template)
                                             }) {
@@ -101,6 +103,30 @@ struct RoutineCreateView: View {
                                                 .overlay(
                                                     Capsule()
                                                         .stroke(Color(UIColor.systemGray4), lineWidth: 1)
+                                                )
+                                            }
+                                        }
+                                        
+                                        // Saved templates
+                                        ForEach(savedTemplates) { routine in
+                                            Button(action: {
+                                                applyRoutineTemplate(routine)
+                                            }) {
+                                                HStack(spacing: 6) {
+                                                    Text(routine.name ?? "루틴")
+                                                        .font(.system(size: 15, weight: .medium))
+                                                        .foregroundColor(.primary)
+                                                    Text("(저장됨)")
+                                                        .font(.system(size: 13))
+                                                        .foregroundColor(.orange)
+                                                }
+                                                .padding(.vertical, 10)
+                                                .padding(.horizontal, 16)
+                                                .background(Color.white)
+                                                .clipShape(Capsule())
+                                                .overlay(
+                                                    Capsule()
+                                                        .stroke(Color.orange, lineWidth: 1)
                                                 )
                                             }
                                         }
@@ -156,7 +182,7 @@ struct RoutineCreateView: View {
                 // MARK: - Bottom Action Button
                 VStack {
                     Button(action: {
-                        dismiss()
+                        saveRoutine()
                     }) {
                         Text("저장")
                             .font(.system(size: 17, weight: .bold))
@@ -176,6 +202,9 @@ struct RoutineCreateView: View {
         }
         .navigationTitle("루틴 만들기")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            onAppear()
+        }
     }
     
     // Logic
@@ -184,14 +213,30 @@ struct RoutineCreateView: View {
         self.routineName = template.name
     }
     
+    private func applyRoutineTemplate(_ routine: Routine) {
+        self.routineName = routine.name ?? "루틴"
+        let routineSteps = routine.steps as? Set<RoutineStep> ?? []
+        let sortedSteps = routineSteps.sorted { ($0.order, $0.stepId?.uuidString ?? "") < ($1.order, $1.stepId?.uuidString ?? "") }
+        self.steps = sortedSteps.map { step in
+            let minutes = String(format: "%02d", step.minutes)
+            let seconds = "00"
+            return RoutineStepData(name: step.type ?? "작업", duration: minutes + seconds)
+        }
+    }
+    
     private func addStep() {
         steps.append(RoutineStepData(name: "", duration: "0000"))
+    }
+    
+    private func loadSavedTemplates() {
+        savedTemplates = CoreDataManager.shared.fetchTemplateRoutines()
     }
     
     private func saveRoutine() {
         guard !routineName.isEmpty else { return }
         
         let routine = CoreDataManager.shared.createRoutine(name: routineName)
+        CoreDataManager.shared.updateRoutine(routine, isTemplate: isTemplate)
         
         for (index, step) in steps.enumerated() {
             let minutes = Int16(Int(step.duration.prefix(2)) ?? 0)
@@ -205,6 +250,10 @@ struct RoutineCreateView: View {
         }
         
         dismiss()
+    }
+    
+    func onAppear() {
+        loadSavedTemplates()
     }
 }
 
