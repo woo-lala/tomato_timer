@@ -1,20 +1,14 @@
 
 import SwiftUI
-
-// Mock Data Model
-struct Routine: Identifiable {
-    let id = UUID()
-    let name: String
-    let timeSteps: String
-    let lastRun: String
-}
+import CoreData
 
 struct RoutineListView: View {
-    // Mock Data
-    @State private var myRoutines = [
-        Routine(name: "집중 루틴", timeSteps: "25m · 5m · 25m · 15m", lastRun: "오늘 오전 10:30"),
-        Routine(name: "시험 기간", timeSteps: "50m · 10m · 50m", lastRun: "어제 오후 3:15")
-    ]
+    @Environment(\.managedObjectContext) var managedObjectContext
+    @FetchRequest(
+        entity: Routine.entity(),
+        sortDescriptors: [NSSortDescriptor(keyPath: \Routine.createdAt, ascending: false)],
+        predicate: NSPredicate(format: "isArchived == false")
+    ) var routines: FetchedResults<Routine>
     
     var body: some View {
         NavigationStack {
@@ -28,12 +22,20 @@ struct RoutineListView: View {
                             .foregroundColor(.black)
                             .padding(.horizontal, AppSpacing.mediumPlus)
                         
-                        VStack(spacing: 12) {
-                            ForEach(myRoutines) { routine in
-                                RoutineCard(routine: routine)
+                        if routines.isEmpty {
+                            Text("아직 루틴이 없습니다.")
+                                .font(.system(size: 16))
+                                .foregroundColor(.gray)
+                                .padding(.vertical, 20)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                        } else {
+                            VStack(spacing: 12) {
+                                ForEach(routines) { routine in
+                                    CDRoutineCard(routine: routine)
+                                }
                             }
+                            .padding(.horizontal, AppSpacing.mediumPlus)
                         }
-                        .padding(.horizontal, AppSpacing.mediumPlus)
                     }
                     .padding(.top, AppSpacing.medium)
                     
@@ -73,6 +75,79 @@ struct RoutineListView: View {
 
 // MARK: - Components
 
+struct CDRoutineCard: View {
+    let routine: Routine
+    @State private var showConfigSheet = false
+    @State private var startTimer = false
+    
+    var timeStepsDisplay: String {
+        let steps = routine.steps as? Set<RoutineStep> ?? []
+        let sortedSteps = steps.sorted { ($0.order, $0.stepId?.uuidString ?? "") < ($1.order, $1.stepId?.uuidString ?? "") }
+        return sortedSteps.map { "\($0.minutes)m" }.joined(separator: " · ")
+    }
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 8) {
+                // Title and Time Steps
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(routine.name ?? "루틴")
+                        .font(AppFont.headline())
+                        .foregroundColor(AppColor.textPrimary)
+                    
+                    Text(timeStepsDisplay.isEmpty ? "스텝 없음" : timeStepsDisplay)
+                        .font(AppFont.body())
+                        .foregroundColor(AppColor.textSecondary)
+                }
+                
+                // Created Date Badge
+                if let createdAt = routine.createdAt {
+                    Text("생성일: \(createdAt.formatted(date: .abbreviated, time: .omitted))")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(Color.gray)
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)
+                        .background(Color(hex: "F2F2F7"))
+                        .cornerRadius(8)
+                }
+            }
+            
+            Spacer()
+            
+            // Play Button
+            Button(action: {
+                showConfigSheet = true
+            }) {
+                Image(systemName: "play.fill")
+                    .font(.system(size: 18))
+                    .foregroundColor(.white)
+                    .padding(10)
+                    .background(AppColor.primary)
+                    .clipShape(Circle())
+                    .shadow(color: AppColor.primary.opacity(0.4), radius: 4, x: 0, y: 2)
+            }
+        }
+        .padding(16)
+        .background(Color.white)
+        .cornerRadius(AppRadius.standard)
+        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+        .overlay(
+            RoundedRectangle(cornerRadius: AppRadius.standard)
+                .stroke(Color(hex: "F2F2F7"), lineWidth: 1)
+        )
+        .sheet(isPresented: $showConfigSheet) {
+            NotificationModeSheet(onStart: {
+                startTimer = true
+            })
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+        }
+        .navigationDestination(isPresented: $startTimer) {
+            TimerRunningView()
+        }
+    }
+}
+
 struct RoutineCard: View {
     let routine: Routine
     @State private var showConfigSheet = false
@@ -83,24 +158,13 @@ struct RoutineCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 // Title and Time Steps
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(routine.name)
+                    Text(routine.name ?? "루틴")
                         .font(AppFont.headline())
                         .foregroundColor(AppColor.textPrimary)
                     
-                    Text(routine.timeSteps)
+                    Text("")
                         .font(AppFont.body())
                         .foregroundColor(AppColor.textSecondary)
-                }
-                
-                // Last Run Badge
-                if !routine.lastRun.isEmpty {
-                    Text("마지막 실행: \(routine.lastRun)")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(Color.gray)
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 8)
-                        .background(Color(hex: "F2F2F7"))
-                        .cornerRadius(8)
                 }
             }
             

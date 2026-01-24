@@ -1,29 +1,31 @@
  import SwiftUI
 import UniformTypeIdentifiers
+import CoreData
 
 struct RoutineCreateView: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(\.managedObjectContext) var managedObjectContext
     
     @State private var routineName: String = ""
-    @State private var steps: [RoutineStep] = [
-        RoutineStep(name: "작업", duration: "2500"),
-        RoutineStep(name: "휴식", duration: "0500")
+    @State private var steps: [RoutineStepData] = [
+        RoutineStepData(name: "작업", duration: "2500"),
+        RoutineStepData(name: "휴식", duration: "0500")
     ]
     @State private var isTemplate: Bool = false
     
-    @State private var draggingItem: RoutineStep?
+    @State private var draggingItem: RoutineStepData?
     
     let templates = [
         RoutineTemplate(name: "출근 루틴", display: "30/10/20", steps: [
-            RoutineStep(name: "준비", duration: "3000"),
-            RoutineStep(name: "이동", duration: "1000"),
-            RoutineStep(name: "도착", duration: "2000")
+            RoutineStepData(name: "준비", duration: "3000"),
+            RoutineStepData(name: "이동", duration: "1000"),
+            RoutineStepData(name: "도착", duration: "2000")
         ]),
         RoutineTemplate(name: "수업 루틴", display: "50/10/50/10", steps: [
-            RoutineStep(name: "수업 1", duration: "5000"),
-            RoutineStep(name: "쉬는시간", duration: "1000"),
-            RoutineStep(name: "수업 2", duration: "5000"),
-            RoutineStep(name: "정리", duration: "1000")
+            RoutineStepData(name: "수업 1", duration: "5000"),
+            RoutineStepData(name: "쉬는시간", duration: "1000"),
+            RoutineStepData(name: "수업 2", duration: "5000"),
+            RoutineStepData(name: "정리", duration: "1000")
         ])
     ]
     
@@ -183,15 +185,34 @@ struct RoutineCreateView: View {
     }
     
     private func addStep() {
-        steps.append(RoutineStep(name: "", duration: "0000"))
+        steps.append(RoutineStepData(name: "", duration: "0000"))
+    }
+    
+    private func saveRoutine() {
+        guard !routineName.isEmpty else { return }
+        
+        let routine = CoreDataManager.shared.createRoutine(name: routineName)
+        
+        for (index, step) in steps.enumerated() {
+            let minutes = Int16(Int(step.duration.prefix(2)) ?? 0)
+            let stepType = step.name.lowercased().contains("휴") ? "break" : "focus"
+            CoreDataManager.shared.createRoutineStep(
+                routine: routine,
+                order: Int16(index),
+                type: stepType,
+                minutes: minutes
+            )
+        }
+        
+        dismiss()
     }
 }
 
 // MARK: - Drag & Drop Logic
 struct DragRelocateDelegate: DropDelegate {
-    let item: RoutineStep
-    @Binding var listData: [RoutineStep]
-    @Binding var current: RoutineStep?
+    let item: RoutineStepData
+    @Binding var listData: [RoutineStepData]
+    @Binding var current: RoutineStepData?
 
     func dropEntered(info: DropInfo) {
         guard let current = current else { return }
@@ -220,7 +241,7 @@ struct DragRelocateDelegate: DropDelegate {
 
 // MARK: - Models & Subviews
 
-struct RoutineStep: Identifiable, Equatable {
+struct RoutineStepData: Identifiable, Equatable {
     let id = UUID()
     var name: String
     var duration: String // Just digits, e.g. "2500" for 25:00
@@ -230,12 +251,12 @@ struct RoutineTemplate: Identifiable {
     let id = UUID()
     let name: String
     let display: String
-    let steps: [RoutineStep]
+    let steps: [RoutineStepData]
 }
 
 struct RoutineStepRow: View {
-    @Binding var step: RoutineStep
-    @Binding var draggingItem: RoutineStep?
+    @Binding var step: RoutineStepData
+    @Binding var draggingItem: RoutineStepData?
     var onDelete: () -> Void
     
     var body: some View {

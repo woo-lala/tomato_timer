@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="21513" systemVersion="14.2" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="NO">
+    <entity name="Routine" representedClassName="Routine" syncable="YES" codeGenerationType="class">
+        <attribute name="routineId" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="isArchived" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <relationship name="steps" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="RoutineStep" inverseName="routine" inverseEntity="RoutineStep"/>
+        <relationship name="sessions" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Session" inverseName="routine" inverseEntity="Session"/>
+    </entity>
+    <entity name="RoutineStep" representedClassName="RoutineStep" syncable="YES" codeGenerationType="class">
+        <attribute name="stepId" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="routineId" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="order" optional="YES" attributeType="Integer 16" defaultValue="0" usesScalarValueType="YES"/>
+        <attribute name="type" optional="YES" attributeType="String"/>
+        <attribute name="minutes" optional="YES" attributeType="Integer 16" defaultValue="0" usesScalarValueType="YES"/>
+        <relationship name="routine" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Routine" inverseName="steps" inverseEntity="Routine"/>
+    </entity>
+    <entity name="Session" representedClassName="Session" syncable="YES" codeGenerationType="class">
+        <attribute name="sessionId" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="routineId" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="startedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="endedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="status" optional="YES" attributeType="String"/>
+        <attribute name="pauseCount" optional="YES" attributeType="Integer 16" defaultValue="0" usesScalarValueType="YES"/>
+        <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="routine" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Routine" inverseName="sessions" inverseEntity="Routine"/>
+        <relationship name="steps" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="SessionStep" inverseName="session" inverseEntity="SessionStep"/>
+    </entity>
+    <entity name="SessionStep" representedClassName="SessionStep" syncable="YES" codeGenerationType="class">
+        <attribute name="sessionStepId" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="sessionId" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="stepOrder" optional="YES" attributeType="Integer 16" defaultValue="0" usesScalarValueType="YES"/>
+        <attribute name="plannedMinutes" optional="YES" attributeType="Integer 16" defaultValue="0" usesScalarValueType="YES"/>
+        <attribute name="actualSeconds" optional="YES" attributeType="Integer 64" defaultValue="0" usesScalarValueType="YES"/>
+        <attribute name="isCompleted" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="session" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Session" inverseName="steps" inverseEntity="Session"/>
+    </entity>
+</model>
