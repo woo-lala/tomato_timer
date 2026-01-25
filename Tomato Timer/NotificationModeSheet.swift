@@ -4,343 +4,221 @@ import SwiftUI
 struct NotificationModeSheet: View {
     @Environment(\.dismiss) private var dismiss
     
-    @State private var notificationMode: NotificationMode = .sound
+    // Routine data
+    let routine: Routine
+    
+    // Config State
+    @State private var useSound: Bool = true
+    @State private var useVibration: Bool = false
+    
     @State private var selectedSound: NotificationSound = .default
     @State private var selectedVibration: VibrationPattern = .default
     
-    @State private var showSoundSelection = false
-    @State private var showVibrationSelection = false
+    // Persistence
+    @AppStorage("lastUsedSoundEnabled") private var lastSoundEnabled: Bool = true
+    @AppStorage("lastUsedVibrationEnabled") private var lastVibrationEnabled: Bool = false
+    @AppStorage("lastUsedSound") private var lastSoundRaw: String = NotificationSound.default.rawValue
+    @AppStorage("lastUsedVibration") private var lastVibrationRaw: String = VibrationPattern.default.rawValue
     
-    var onStart: () -> Void
-    
-    enum NotificationMode {
-        case sound
-        case vibration
-    }
-    
-    enum NotificationSound: String, CaseIterable {
-        case `default` = "기본"
-        case short = "짧은 알림"
-        case soft = "부드러운 알림"
-    }
-    
-    enum VibrationPattern: String, CaseIterable {
-        case `default` = "기본"
-        case short = "짧은 진동"
-        case double = "두 번 진동"
-    }
+    var onStart: (Routine, NotificationConfiguration) -> Void
     
     var body: some View {
         VStack(spacing: 0) {
-            // Title
-            HStack {
+            // Header
+            VStack(alignment: .leading, spacing: AppSpacing.medium) {
                 Text("알림 방식")
                     .font(AppFont.title())
                     .foregroundColor(AppColor.textPrimary)
-                Spacer()
+                
+                // Quick Presets
+                HStack(spacing: 12) {
+                    Button(action: loadBasicSettings) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "gear")
+                            Text("기본값")
+                        }
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(AppColor.primary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(AppColor.primary.opacity(0.1))
+                        .cornerRadius(AppRadius.button)
+                    }
+                    
+                    Button(action: loadLastUsedSettings) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "clock")
+                            Text("이전 설정")
+                        }
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(AppColor.primary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(AppColor.primary.opacity(0.1))
+                        .cornerRadius(AppRadius.button)
+                    }
+                }
             }
             .padding(.horizontal, AppSpacing.mediumPlus)
             .padding(.top, AppSpacing.large)
-            .padding(.bottom, AppSpacing.medium)
+            .padding(.bottom, AppSpacing.mediumPlus)
             
-            // Section 1: Notification Mode
-            VStack(spacing: 0) {
-                // Sound option
-                Button(action: {
-                    notificationMode = .sound
-                }) {
-                    HStack(spacing: 12) {
-                        Image(systemName: notificationMode == .sound ? "record.circle.fill" : "circle")
-                            .font(.system(size: 22))
-                            .foregroundColor(notificationMode == .sound ? AppColor.primary : AppColor.textSecondary)
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Sound Section
+                    VStack(spacing: 0) {
+                        ToggleRow(title: "소리", isOn: $useSound)
                         
-                        Text("소리")
-                            .font(AppFont.body())
-                            .foregroundColor(AppColor.textPrimary)
-                        
-                        Spacer()
-                    }
-                    .padding(.horizontal, AppSpacing.medium)
-                    .padding(.vertical, AppSpacing.smallPlus)
-                }
-                
-                Divider()
-                    .padding(.leading, AppSpacing.medium)
-                
-                // Vibration option
-                Button(action: {
-                    notificationMode = .vibration
-                }) {
-                    HStack(spacing: 12) {
-                        Image(systemName: notificationMode == .vibration ? "record.circle.fill" : "circle")
-                            .font(.system(size: 22))
-                            .foregroundColor(notificationMode == .vibration ? AppColor.primary : AppColor.textSecondary)
-                        
-                        Text("진동")
-                            .font(AppFont.body())
-                            .foregroundColor(AppColor.textPrimary)
-                        
-                        Spacer()
-                    }
-                    .padding(.horizontal, AppSpacing.medium)
-                    .padding(.vertical, AppSpacing.smallPlus)
-                }
-            }
-            .background(Color.white)
-            .cornerRadius(AppRadius.button)
-            .padding(.horizontal, AppSpacing.mediumPlus)
-            .padding(.bottom, AppSpacing.medium)
-            
-            // Section 2 & 3: Sound or Vibration selection
-            if notificationMode == .sound {
-                // Sound selection row
-                VStack(spacing: 0) {
-                    Button(action: {
-                        showSoundSelection = true
-                    }) {
-                        HStack {
-                            Text("알림음")
-                                .font(AppFont.body())
-                                .foregroundColor(AppColor.textPrimary)
+                        if useSound {
+                            Divider().padding(.leading, AppSpacing.medium)
                             
-                            Spacer()
-                            
-                            Text(selectedSound.rawValue)
-                                .font(AppFont.body())
-                                .foregroundColor(AppColor.textSecondary)
-                            
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(AppColor.textSecondary)
+                            Button(action: {
+                                // Show sound picker? No, inline expansion or sheet
+                                // Let's use Menu or NavigationLink-ish behavior or just expand
+                                // Keeping it simple with existing sheet approach or inline menu
+                            }) {
+                                HStack {
+                                    Text("알림음")
+                                        .foregroundColor(AppColor.textPrimary)
+                                    Spacer()
+                                    Menu {
+                                        ForEach(NotificationSound.allCases, id: \.self) { sound in
+                                            Button(action: {
+                                                selectedSound = sound
+                                                AudioManager.shared.playSound(sound)
+                                            }) {
+                                                if selectedSound == sound {
+                                                    Label(sound.rawValue, systemImage: "checkmark")
+                                                } else {
+                                                    Text(sound.rawValue)
+                                                }
+                                            }
+                                        }
+                                    } label: {
+                                        HStack {
+                                            Text(selectedSound.rawValue)
+                                                .foregroundColor(AppColor.textSecondary)
+                                            Image(systemName: "chevron.up.chevron.down")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(AppColor.textSecondary)
+                                        }
+                                    }
+                                }
+                                .padding(.horizontal, AppSpacing.medium)
+                                .padding(.vertical, AppSpacing.smallPlus)
+                            }
                         }
-                        .padding(.horizontal, AppSpacing.medium)
-                        .padding(.vertical, AppSpacing.smallPlus)
                     }
-                }
-                .background(Color.white)
-                .cornerRadius(AppRadius.button)
-                .padding(.horizontal, AppSpacing.mediumPlus)
-                .padding(.bottom, AppSpacing.medium)
-            } else {
-                // Vibration selection row
-                VStack(spacing: 0) {
-                    Button(action: {
-                        showVibrationSelection = true
-                    }) {
-                        HStack {
-                            Text("진동 패턴")
-                                .font(AppFont.body())
-                                .foregroundColor(AppColor.textPrimary)
+                    .background(Color.white)
+                    .cornerRadius(AppRadius.button)
+                    .padding(.horizontal, AppSpacing.mediumPlus)
+                    
+                    // Vibration Section
+                    VStack(spacing: 0) {
+                        ToggleRow(title: "진동", isOn: $useVibration)
+                        
+                        if useVibration {
+                            Divider().padding(.leading, AppSpacing.medium)
                             
-                            Spacer()
-                            
-                            Text(selectedVibration.rawValue)
-                                .font(AppFont.body())
-                                .foregroundColor(AppColor.textSecondary)
-                            
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(AppColor.textSecondary)
+                            HStack {
+                                Text("진동 패턴")
+                                    .foregroundColor(AppColor.textPrimary)
+                                Spacer()
+                                Menu {
+                                    ForEach(VibrationPattern.allCases, id: \.self) { pattern in
+                                        Button(action: {
+                                            selectedVibration = pattern
+                                            HapticManager.shared.playVibration(pattern)
+                                        }) {
+                                            if selectedVibration == pattern {
+                                                Label(pattern.rawValue, systemImage: "checkmark")
+                                            } else {
+                                                Text(pattern.rawValue)
+                                            }
+                                        }
+                                    }
+                                } label: {
+                                    HStack {
+                                        Text(selectedVibration.rawValue)
+                                            .foregroundColor(AppColor.textSecondary)
+                                        Image(systemName: "chevron.up.chevron.down")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(AppColor.textSecondary)
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, AppSpacing.medium)
+                            .padding(.vertical, AppSpacing.smallPlus)
                         }
-                        .padding(.horizontal, AppSpacing.medium)
-                        .padding(.vertical, AppSpacing.smallPlus)
                     }
+                    .background(Color.white)
+                    .cornerRadius(AppRadius.button)
+                    .padding(.horizontal, AppSpacing.mediumPlus)
                 }
-                .background(Color.white)
-                .cornerRadius(AppRadius.button)
-                .padding(.horizontal, AppSpacing.mediumPlus)
-                .padding(.bottom, AppSpacing.medium)
+                .padding(.bottom, 20)
             }
             
             Spacer()
             
-            // Start button
-            Button(action: {
-                onStart()
-                dismiss()
-            }) {
+            // Start Button
+            Button(action: startRoutine) {
                 Text("시작")
                     .font(AppFont.button())
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(AppColor.primary)
+                    .background(canStart ? AppColor.primary : Color.gray)
                     .cornerRadius(AppRadius.button)
             }
+            .disabled(!canStart)
             .padding(.horizontal, AppSpacing.mediumPlus)
             .padding(.bottom, AppSpacing.large)
         }
         .background(Color(UIColor.systemGroupedBackground))
-        .preferredColorScheme(.light)
-        .sheet(isPresented: $showSoundSelection) {
-            SoundSelectionSheet(selectedSound: $selectedSound)
-                .presentationDetents([.medium])
-        }
-        .sheet(isPresented: $showVibrationSelection) {
-            VibrationSelectionSheet(selectedVibration: $selectedVibration)
-                .presentationDetents([.medium])
+        .onAppear {
+            // Load last used by default? Users request: "Basic or Previous can be selected"
+            // Let's load Last Used by default for convenience
+            loadLastUsedSettings()
         }
     }
-}
-
-// MARK: - Sound Selection Sheet
-
-struct SoundSelectionSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @Binding var selectedSound: NotificationModeSheet.NotificationSound
     
-    var body: some View {
-        VStack(spacing: 0) {
-            // Title
-            HStack {
-                Text("알림음 선택")
-                    .font(AppFont.title())
-                    .foregroundColor(AppColor.textPrimary)
-                Spacer()
-            }
-            .padding(.horizontal, AppSpacing.mediumPlus)
-            .padding(.top, AppSpacing.large)
-            .padding(.bottom, AppSpacing.medium)
-            
-            // Sound options
-            VStack(spacing: 0) {
-                ForEach(NotificationModeSheet.NotificationSound.allCases, id: \.self) { sound in
-                    Button(action: {
-                        // Play sound preview
-                        playSound(sound)
-                        
-                        // Update selection
-                        selectedSound = sound
-                        
-                        // Dismiss sheet
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            dismiss()
-                        }
-                    }) {
-                        HStack {
-                            Text(sound.rawValue)
-                                .font(AppFont.body())
-                                .foregroundColor(AppColor.textPrimary)
-                            
-                            Spacer()
-                            
-                            if selectedSound == sound {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(AppColor.primary)
-                            }
-                        }
-                        .padding(.horizontal, AppSpacing.medium)
-                        .padding(.vertical, AppSpacing.smallPlus)
-                    }
-                    
-                    if sound != NotificationModeSheet.NotificationSound.allCases.last {
-                        Divider()
-                            .padding(.leading, AppSpacing.medium)
-                    }
-                }
-            }
-            .background(Color.white)
-            .cornerRadius(AppRadius.button)
-            .padding(.horizontal, AppSpacing.mediumPlus)
-            
-            Spacer()
-        }
-        .background(Color(UIColor.systemGroupedBackground))
-        .preferredColorScheme(.light)
+    var canStart: Bool {
+        return useSound || useVibration
     }
     
-    private func playSound(_ sound: NotificationModeSheet.NotificationSound) {
-        // TODO: Implement actual sound playback
-        print("Playing sound: \(sound.rawValue)")
-    }
-}
-
-// MARK: - Vibration Selection Sheet
-
-struct VibrationSelectionSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @Binding var selectedVibration: NotificationModeSheet.VibrationPattern
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            // Title
-            HStack {
-                Text("진동 패턴 선택")
-                    .font(AppFont.title())
-                    .foregroundColor(AppColor.textPrimary)
-                Spacer()
-            }
-            .padding(.horizontal, AppSpacing.mediumPlus)
-            .padding(.top, AppSpacing.large)
-            .padding(.bottom, AppSpacing.medium)
-            
-            // Vibration options
-            VStack(spacing: 0) {
-                ForEach(NotificationModeSheet.VibrationPattern.allCases, id: \.self) { pattern in
-                    Button(action: {
-                        // Trigger vibration preview
-                        triggerVibration(pattern)
-                        
-                        // Update selection
-                        selectedVibration = pattern
-                        
-                        // Dismiss sheet
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            dismiss()
-                        }
-                    }) {
-                        HStack {
-                            Text(pattern.rawValue)
-                                .font(AppFont.body())
-                                .foregroundColor(AppColor.textPrimary)
-                            
-                            Spacer()
-                            
-                            if selectedVibration == pattern {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(AppColor.primary)
-                            }
-                        }
-                        .padding(.horizontal, AppSpacing.medium)
-                        .padding(.vertical, AppSpacing.smallPlus)
-                    }
-                    
-                    if pattern != NotificationModeSheet.VibrationPattern.allCases.last {
-                        Divider()
-                            .padding(.leading, AppSpacing.medium)
-                    }
-                }
-            }
-            .background(Color.white)
-            .cornerRadius(AppRadius.button)
-            .padding(.horizontal, AppSpacing.mediumPlus)
-            
-            Spacer()
-        }
-        .background(Color(UIColor.systemGroupedBackground))
-        .preferredColorScheme(.light)
+    private func loadBasicSettings() {
+        useSound = true
+        useVibration = false
+        selectedSound = .default
+        selectedVibration = .default
     }
     
-    private func triggerVibration(_ pattern: NotificationModeSheet.VibrationPattern) {
-        // TODO: Implement actual vibration patterns
-        print("Triggering vibration: \(pattern.rawValue)")
+    private func loadLastUsedSettings() {
+        useSound = lastSoundEnabled
+        useVibration = lastVibrationEnabled
+        selectedSound = NotificationSound(rawValue: lastSoundRaw) ?? .default
+        selectedVibration = VibrationPattern(rawValue: lastVibrationRaw) ?? .default
+    }
+    
+    private func startRoutine() {
+        // Save current settings
+        lastSoundEnabled = useSound
+        lastVibrationEnabled = useVibration
+        lastSoundRaw = selectedSound.rawValue
+        lastVibrationRaw = selectedVibration.rawValue
         
-        // Basic vibration feedback
-        let generator = UIImpactFeedbackGenerator(style: .medium)
-        generator.impactOccurred()
-        
-        if pattern == .double {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                generator.impactOccurred()
-            }
+        // Create Config
+        let mode: NotificationMode
+        if useSound && useVibration {
+            mode = .soundAndVibration
+        } else if useSound {
+            mode = .sound
+        } else {
+            mode = .vibration
         }
+        
+        let config = NotificationConfiguration(mode: mode, sound: selectedSound, vibration: selectedVibration)
+        onStart(routine, config)
+        dismiss()
     }
-}
-
-#Preview {
-    NotificationModeSheet(onStart: {
-        print("Start timer")
-    })
 }
