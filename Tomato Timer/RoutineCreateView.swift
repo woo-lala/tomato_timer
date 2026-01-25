@@ -6,6 +6,8 @@ struct RoutineCreateView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.managedObjectContext) var managedObjectContext
     
+    let routine: Routine?  // nil if creating new, non-nil if editing
+    
     @State private var routineName: String = ""
     @State private var steps: [RoutineStepData] = [
         RoutineStepData(name: "작업", duration: "2500"),
@@ -29,6 +31,10 @@ struct RoutineCreateView: View {
             RoutineStepData(name: "정리", duration: "1000")
         ])
     ]
+    
+    var isEditingMode: Bool {
+        routine != nil
+    }
     
     var body: some View {
         ZStack {
@@ -116,9 +122,9 @@ struct RoutineCreateView: View {
                                                     Text(routine.name ?? "루틴")
                                                         .font(.system(size: 15, weight: .medium))
                                                         .foregroundColor(.primary)
-                                                    Text("(저장됨)")
+                                                    Text("(\(getRoutineTimeDisplay(routine)))")
                                                         .font(.system(size: 13))
-                                                        .foregroundColor(.orange)
+                                                        .foregroundColor(.gray)
                                                 }
                                                 .padding(.vertical, 10)
                                                 .padding(.horizontal, 16)
@@ -126,7 +132,7 @@ struct RoutineCreateView: View {
                                                 .clipShape(Capsule())
                                                 .overlay(
                                                     Capsule()
-                                                        .stroke(Color.orange, lineWidth: 1)
+                                                        .stroke(Color(UIColor.systemGray4), lineWidth: 1)
                                                 )
                                             }
                                         }
@@ -200,7 +206,7 @@ struct RoutineCreateView: View {
                 .shadow(color: Color.black.opacity(0.05), radius: 8, y: -4)
             }
         }
-        .navigationTitle("루틴 만들기")
+        .navigationTitle(isEditingMode ? "루틴 편집" : "루틴 만들기")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             onAppear()
@@ -213,19 +219,25 @@ struct RoutineCreateView: View {
         self.routineName = template.name
     }
     
+    private func getRoutineTimeDisplay(_ routine: Routine) -> String {
+        let steps = routine.steps as? Set<RoutineStep> ?? []
+        let sortedSteps = steps.sorted { ($0.order, $0.stepId?.uuidString ?? "") < ($1.order, $1.stepId?.uuidString ?? "") }
+        return sortedSteps.map { "\(Int($0.minutes))" }.joined(separator: "/")
+    }
+    
     private func applyRoutineTemplate(_ routine: Routine) {
         self.routineName = routine.name ?? "루틴"
         let routineSteps = routine.steps as? Set<RoutineStep> ?? []
         let sortedSteps = routineSteps.sorted { ($0.order, $0.stepId?.uuidString ?? "") < ($1.order, $1.stepId?.uuidString ?? "") }
         self.steps = sortedSteps.map { step in
             let minutes = String(format: "%02d", step.minutes)
-            let seconds = "00"
+            let seconds = String(format: "%02d", step.seconds)
             return RoutineStepData(name: step.type ?? "작업", duration: minutes + seconds)
         }
     }
     
     private func addStep() {
-        steps.append(RoutineStepData(name: "", duration: "0000"))
+        steps.append(RoutineStepData(name: "", duration: ""))
     }
     
     private func loadSavedTemplates() {
@@ -235,25 +247,85 @@ struct RoutineCreateView: View {
     private func saveRoutine() {
         guard !routineName.isEmpty else { return }
         
-        let routine = CoreDataManager.shared.createRoutine(name: routineName)
-        CoreDataManager.shared.updateRoutine(routine, isTemplate: isTemplate)
+        let targetRoutine: Routine
         
+        if let existingRoutine = routine {
+            // 수정 모드: 기존 루틴 업데이트
+            targetRoutine = existingRoutine
+            targetRoutine.name = routineName
+            targetRoutine.isTemplate = isTemplate
+            targetRoutine.updatedAt = Date()
+            
+            // 기존 스텝 삭제
+            if let existingSteps = targetRoutine.steps as? Set<RoutineStep> {
+                for step in existingSteps {
+                    managedObjectContext.delete(step)
+                }
+            }
+            
+            // 삭제 후 먼저 저장
+            do {
+                try managedObjectContext.save()
+            } catch {
+                print("Failed to save after deleting steps: \(error)")
+            }
+        } else {
+            // 새로 생성 모드
+            targetRoutine = CoreDataManager.shared.createRoutine(name: routineName)
+            CoreDataManager.shared.updateRoutine(targetRoutine, isTemplate: isTemplate)
+        }
+        
+        // 새로운 스텝 추가
         for (index, step) in steps.enumerated() {
-            let minutes = Int16(Int(step.duration.prefix(2)) ?? 0)
-            let stepType = step.name.lowercased().contains("휴") ? "break" : "focus"
+            // duration은 숫자만 저장되어 있음 (예: "2500", "25000")
+            // 마지막 2글자는 초, 나머지는 분
+            let minutes: Int16
+            let seconds: Int16
+            
+            if step.duration.count >= 3 {
+                let minuteString = String(step.duration.dropLast(2))
+                let secondString = String(step.duration.suffix(2))
+                minutes = Int16(Int(minuteString) ?? 0)
+                seconds = Int16(Int(secondString) ?? 0)
+            } else {
+                // 2글자 이하는 초로 해석
+                minutes = 0
+                seconds = Int16(Int(step.duration) ?? 0)
+            }
+            
             CoreDataManager.shared.createRoutineStep(
-                routine: routine,
+                routine: targetRoutine,
                 order: Int16(index),
-                type: stepType,
-                minutes: minutes
+                type: step.name,
+                minutes: minutes,
+                seconds: seconds
             )
         }
         
+        // CoreData 저장
+        do {
+            try managedObjectContext.save()
+        } catch {
+            print("Failed to save routine: \(error)")
+        }
         dismiss()
     }
     
     func onAppear() {
         loadSavedTemplates()
+        // 수정 모드일 경우 기존 데이터로 form 채우기
+        if let routine = routine {
+            routineName = routine.name ?? ""
+            isTemplate = routine.isTemplate
+            
+            let routineSteps = routine.steps as? Set<RoutineStep> ?? []
+            let sortedSteps = routineSteps.sorted { ($0.order, $0.stepId?.uuidString ?? "") < ($1.order, $1.stepId?.uuidString ?? "") }
+            steps = sortedSteps.map { step in
+                let minutes = String(format: "%02d", step.minutes)
+                let seconds = String(format: "%02d", step.seconds)
+                return RoutineStepData(name: step.type ?? "작업", duration: minutes + seconds)
+            }
+        }
     }
 }
 
@@ -354,38 +426,84 @@ struct RoutineStepRow: View {
 
 struct TimeInput: View {
     @Binding var text: String
+    @State private var displayText: String = ""
+    @FocusState private var isFocused: Bool
     
     var body: some View {
-        TextField("00:00", text: Binding(
-            get: {
-                format(text)
-            },
-            set: { newValue in
-                let filtered = newValue.filter { "0123456789".contains($0) }
-                if filtered.count <= 4 {
-                    text = filtered
+        TextField("mm:ss", text: $displayText)
+            .keyboardType(.numberPad)
+            .font(.system(size: 16, design: .monospaced))
+            .multilineTextAlignment(.center)
+            .padding(.vertical, 10)
+            .focused($isFocused)
+            .onChange(of: displayText) { _, newValue in
+                let normalized = normalizeInput(newValue)
+                displayText = normalized.display
+                text = normalized.storage
+            }
+            .onChange(of: text) { _, newValue in
+                let formatted = formatFromStorage(newValue)
+                if displayText != formatted {
+                    displayText = formatted
                 }
             }
-        ))
-        .keyboardType(.numberPad)
-        .font(.system(size: 16, design: .monospaced))
-        .multilineTextAlignment(.center)
-        .padding(.vertical, 10)
+            .onChange(of: isFocused) { _, newValue in
+                if newValue == false {
+                    let digits = digitsOnly(displayText)
+                    guard !digits.isEmpty else { return }
+                    if digits.count <= 2 {
+                        let padded = String(format: "%02d", Int(digits) ?? 0)
+                        displayText = "00:\(padded)"
+                        text = "00\(padded)"
+                    }
+                }
+            }
+            .onAppear {
+                displayText = formatFromStorage(text)
+            }
     }
     
-    func format(_ raw: String) -> String {
-        var str = raw
-        if raw.count > 4 { str = String(raw.prefix(4)) }
-        if str.count > 2 {
-            let index = str.index(str.startIndex, offsetBy: 2)
-            return "\(str[..<index]):\(str[index...])"
+    private func digitsOnly(_ value: String) -> String {
+        value.filter { "0123456789".contains($0) }
+    }
+    
+    private func clampSecondsValue(_ value: Int) -> Int {
+        min(max(value, 0), 59)
+    }
+    
+    private func normalizeInput(_ raw: String) -> (display: String, storage: String) {
+        let digits = digitsOnly(raw)
+        guard !digits.isEmpty else { return ("", "") }
+        
+        // 1~2자리: 그대로 표시 (초만 입력 중)
+        if digits.count <= 2 {
+            return (digits, digits)
         }
-        return str
+        
+        // 3자리 이상: 마지막 2자리는 초, 나머지는 분
+        let minutesEndIndex = digits.index(digits.endIndex, offsetBy: -2)
+        let minutes = Int(digits[..<minutesEndIndex]) ?? 0
+        let seconds = clampSecondsValue(Int(digits[minutesEndIndex...]) ?? 0)
+        let display = "\(minutes):\(String(format: "%02d", seconds))"
+        let storage = "\(minutes)\(String(format: "%02d", seconds))"
+        return (display, storage)
+    }
+    
+    private func formatFromStorage(_ stored: String) -> String {
+        let digits = digitsOnly(stored)
+        guard !digits.isEmpty else { return "" }
+        
+        if digits.count <= 2 { return digits }
+        
+        let minutesEndIndex = digits.index(digits.endIndex, offsetBy: -2)
+        let minutes = Int(digits[..<minutesEndIndex]) ?? 0
+        let seconds = clampSecondsValue(Int(digits[minutesEndIndex...]) ?? 0)
+        return "\(minutes):\(String(format: "%02d", seconds))"
     }
 }
 
 #Preview {
     NavigationStack {
-        RoutineCreateView()
+        RoutineCreateView(routine: nil)
     }
 }
