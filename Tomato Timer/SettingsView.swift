@@ -3,8 +3,8 @@ import SwiftUI
 
 struct SettingsView: View {
     // Settings State
-    @State private var keepScreenOn = false
-    @State private var dataCollectionEnabled = false
+    @AppStorage("keepScreenOn") private var keepScreenOn = false
+    
     
     var body: some View {
         ScrollView {
@@ -28,46 +28,7 @@ struct SettingsView: View {
                 }
                 .padding(.bottom, AppSpacing.large)
                 
-                // Section 2: 데이터
-                VStack(spacing: 0) {
-                    SectionHeader(title: "데이터")
-                        .padding(.horizontal, AppSpacing.mediumPlus)
-                        .padding(.bottom, AppSpacing.small)
-                    
-                    VStack(spacing: 0) {
-                        ToggleRow(
-                            title: "사용 데이터 수집",
-                            isOn: $dataCollectionEnabled
-                        )
-                        
-                        Divider()
-                            .padding(.leading, AppSpacing.medium)
-                        
-                        InfoRow(
-                            title: "데이터 수집 안내",
-                            description: "사용 데이터는 익명으로 수집되며 앱 개선을 위해서만 사용됩니다."
-                        )
-                        
-                        Divider()
-                            .padding(.leading, AppSpacing.medium)
-                        
-                        LinkRow(
-                            title: "개인정보 처리방침 보기",
-                            action: {
-                                // Open privacy policy
-                                if let url = URL(string: "https://example.com/privacy") {
-                                    UIApplication.shared.open(url)
-                                }
-                            }
-                        )
-                    }
-                    .background(Color.white)
-                    .cornerRadius(AppRadius.button)
-                    .padding(.horizontal, AppSpacing.mediumPlus)
-                }
-                .padding(.bottom, AppSpacing.large)
-                
-                // Section 3: 정보
+                // Section 2: 정보
                 VStack(spacing: 0) {
                     SectionHeader(title: "정보")
                         .padding(.horizontal, AppSpacing.mediumPlus)

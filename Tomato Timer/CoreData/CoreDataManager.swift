@@ -19,6 +19,7 @@ class CoreDataManager {
         routine.createdAt = Date()
         routine.updatedAt = Date()
         routine.isArchived = false
+        routine.keepScreenOn = UserDefaults.standard.bool(forKey: "keepScreenOn")
         
         saveContext()
         return routine
@@ -92,13 +93,14 @@ class CoreDataManager {
     // MARK: - RoutineStep CRUD
 
     @discardableResult
-    func createRoutineStep(routine: Routine, order: Int16, type: String, minutes: Int16) -> RoutineStep {
+    func createRoutineStep(routine: Routine, order: Int16, type: String, minutes: Int16, seconds: Int16 = 0) -> RoutineStep {
         let step = RoutineStep(context: context)
         step.stepId = UUID()
         step.routineId = routine.routineId
         step.order = order
         step.type = type
         step.minutes = minutes
+        step.seconds = seconds
         step.routine = routine
         routine.addToSteps(step)
         
