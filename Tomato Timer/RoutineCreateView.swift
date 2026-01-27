@@ -9,12 +9,11 @@ struct RoutineCreateView: View {
     let routine: Routine?  // nil if creating new, non-nil if editing
     
     @State private var routineName: String = ""
-    @State private var steps: [RoutineStepData] = [
-        RoutineStepData(name: "작업", duration: "2500"),
-        RoutineStepData(name: "휴식", duration: "0500")
-    ]
+    @State private var steps: [RoutineStepData] = []
     @State private var isTemplate: Bool = false
     @State private var savedTemplates: [Routine] = []
+    @State private var showValidationAlert: Bool = false
+    @State private var validationMessage: String = ""
     
     @State private var draggingItem: RoutineStepData?
     
@@ -164,24 +163,31 @@ struct RoutineCreateView: View {
                         .padding(.horizontal, AppSpacing.mediumPlus)
                         
                         // Add Button Section
-                        Button(action: {
-                            addStep()
-                        }) {
-                            HStack {
-                                Image(systemName: "plus")
-                                Text("단계 추가")
+                        VStack(spacing: 8) {
+                            if steps.isEmpty {
+                                Text("루틴을 만들려면 먼저 단계를 추가해주세요.")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.gray)
                             }
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.primary)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(Color.white) // Changed to white to pop on grouped background
-                            .cornerRadius(12)
-                            .shadow(color: Color.black.opacity(0.02), radius: 2, x: 0, y: 1)
+                            Button(action: {
+                                addStep()
+                            }) {
+                                HStack {
+                                    Image(systemName: "plus")
+                                    Text("단계 추가")
+                                }
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.primary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(Color.white) // Changed to white to pop on grouped background
+                                .cornerRadius(12)
+                                .shadow(color: Color.black.opacity(0.02), radius: 2, x: 0, y: 1)
+                            }
+                            .buttonStyle(PlainButtonStyle())
                         }
                         .padding(.horizontal, AppSpacing.mediumPlus)
                         .padding(.bottom, 32)
-                        .buttonStyle(PlainButtonStyle())
                     }
                 }
                 
@@ -208,6 +214,11 @@ struct RoutineCreateView: View {
         }
         .navigationTitle(isEditingMode ? "루틴 편집" : "루틴 만들기")
         .navigationBarTitleDisplayMode(.inline)
+        .alert("입력 확인", isPresented: $showValidationAlert) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(validationMessage)
+        }
         .onAppear {
             onAppear()
         }
@@ -245,7 +256,22 @@ struct RoutineCreateView: View {
     }
     
     private func saveRoutine() {
-        guard !routineName.isEmpty else { return }
+        guard !routineName.isEmpty else {
+            showValidation(message: "루틴 이름을 입력해주세요.")
+            return
+        }
+        guard !steps.isEmpty else {
+            showValidation(message: "단계를 최소 1개 추가해주세요.")
+            return
+        }
+        guard !steps.contains(where: { $0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) else {
+            showValidation(message: "단계 이름을 입력해주세요.")
+            return
+        }
+        guard !steps.contains(where: { isZeroDuration($0.duration) }) else {
+            showValidation(message: "시간을 00:00:00 이상으로 입력해주세요.")
+            return
+        }
         
         let targetRoutine: Routine
         
@@ -310,6 +336,23 @@ struct RoutineCreateView: View {
         }
         dismiss()
     }
+
+    private func isZeroDuration(_ duration: String) -> Bool {
+        let digits = duration.filter { "0123456789".contains($0) }
+        guard !digits.isEmpty else { return true }
+        if digits.count <= 2 {
+            return (Int(digits) ?? 0) == 0
+        }
+        let minutesEndIndex = digits.index(digits.endIndex, offsetBy: -2)
+        let minutes = Int(digits[..<minutesEndIndex]) ?? 0
+        let seconds = Int(digits[minutesEndIndex...]) ?? 0
+        return minutes == 0 && seconds == 0
+    }
+
+    private func showValidation(message: String) {
+        validationMessage = message
+        showValidationAlert = true
+    }
     
     func onAppear() {
         loadSavedTemplates()
@@ -325,6 +368,8 @@ struct RoutineCreateView: View {
                 let seconds = String(format: "%02d", step.seconds)
                 return RoutineStepData(name: step.type ?? "작업", duration: minutes + seconds)
             }
+        } else if steps.isEmpty {
+            addStep()
         }
     }
 }
@@ -365,7 +410,7 @@ struct DragRelocateDelegate: DropDelegate {
 struct RoutineStepData: Identifiable, Equatable {
     let id = UUID()
     var name: String
-    var duration: String // Just digits, e.g. "2500" for 25:00
+    var duration: String // Just digits, e.g. "2500" for 25:00 (total minutes + seconds)
 }
 
 struct RoutineTemplate: Identifiable {
@@ -402,8 +447,8 @@ struct RoutineStepRow: View {
                 .frame(minWidth: 100, maxWidth: .infinity)
                 .layoutPriority(1)
             
-            // Time Input (Numbers Only)
-            TimeInput(text: $step.duration)
+            // Time Input (Button + Bottom Sheet)
+            TimePickerButton(duration: $step.duration)
                 .frame(width: 120)
                 .background(Color(UIColor.systemGray6))
                 .cornerRadius(6)
@@ -424,81 +469,158 @@ struct RoutineStepRow: View {
     }
 }
 
-struct TimeInput: View {
-    @Binding var text: String
-    @State private var displayText: String = ""
-    @FocusState private var isFocused: Bool
-    
+struct TimePickerButton: View {
+    @Binding var duration: String
+    @State private var isSheetPresented = false
+    @State private var hours: Int = 0
+    @State private var minutes: Int = 0
+    @State private var seconds: Int = 0
+
     var body: some View {
-        TextField("mm:ss", text: $displayText)
-            .keyboardType(.numberPad)
-            .font(.system(size: 16, design: .monospaced))
-            .multilineTextAlignment(.center)
+        Button(action: {
+            syncPickerFromStorage()
+            isSheetPresented = true
+        }) {
+            HStack(spacing: 6) {
+                Text(formatDisplayFromStorage(duration))
+                    .font(.system(size: 16, design: .monospaced))
+                    .foregroundColor(.primary)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.gray)
+            }
+            .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
-            .focused($isFocused)
-            .onChange(of: displayText) { _, newValue in
-                let normalized = normalizeInput(newValue)
-                displayText = normalized.display
-                text = normalized.storage
-            }
-            .onChange(of: text) { _, newValue in
-                let formatted = formatFromStorage(newValue)
-                if displayText != formatted {
-                    displayText = formatted
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $isSheetPresented) {
+            TimePickerSheet(
+                hours: $hours,
+                minutes: $minutes,
+                seconds: $seconds,
+                onDone: {
+                    applyPickerToStorage()
+                    isSheetPresented = false
                 }
-            }
-            .onChange(of: isFocused) { _, newValue in
-                if newValue == false {
-                    let digits = digitsOnly(displayText)
-                    guard !digits.isEmpty else { return }
-                    if digits.count <= 2 {
-                        let padded = String(format: "%02d", Int(digits) ?? 0)
-                        displayText = "00:\(padded)"
-                        text = "00\(padded)"
-                    }
-                }
-            }
-            .onAppear {
-                displayText = formatFromStorage(text)
-            }
+            )
+            .presentationDetents([.height(320)])
+            .presentationDragIndicator(.visible)
+        }
     }
-    
-    private func digitsOnly(_ value: String) -> String {
-        value.filter { "0123456789".contains($0) }
+
+    private func syncPickerFromStorage() {
+        let parsed = parseStorage(duration)
+        let totalMinutes = parsed.totalMinutes
+        hours = totalMinutes / 60
+        minutes = totalMinutes % 60
+        seconds = parsed.seconds
     }
-    
+
+    private func applyPickerToStorage() {
+        let totalMinutes = hours * 60 + minutes
+        duration = "\(totalMinutes)\(String(format: "%02d", seconds))"
+    }
+
+    private func formatDisplayFromStorage(_ stored: String) -> String {
+        let parsed = parseStorage(stored)
+        let totalMinutes = parsed.totalMinutes
+        let displayHours = totalMinutes / 60
+        let displayMinutes = totalMinutes % 60
+        return String(format: "%02d:%02d:%02d", displayHours, displayMinutes, parsed.seconds)
+    }
+
+    private func parseStorage(_ stored: String) -> (totalMinutes: Int, seconds: Int) {
+        let digits = stored.filter { "0123456789".contains($0) }
+        guard !digits.isEmpty else { return (0, 0) }
+        if digits.count <= 2 {
+            return (0, clampSecondsValue(Int(digits) ?? 0))
+        }
+        let minutesEndIndex = digits.index(digits.endIndex, offsetBy: -2)
+        let minutes = Int(digits[..<minutesEndIndex]) ?? 0
+        let seconds = clampSecondsValue(Int(digits[minutesEndIndex...]) ?? 0)
+        return (minutes, seconds)
+    }
+
     private func clampSecondsValue(_ value: Int) -> Int {
         min(max(value, 0), 59)
     }
-    
-    private func normalizeInput(_ raw: String) -> (display: String, storage: String) {
-        let digits = digitsOnly(raw)
-        guard !digits.isEmpty else { return ("", "") }
-        
-        // 1~2자리: 그대로 표시 (초만 입력 중)
-        if digits.count <= 2 {
-            return (digits, digits)
+}
+
+struct TimePickerSheet: View {
+    @Binding var hours: Int
+    @Binding var minutes: Int
+    @Binding var seconds: Int
+    var onDone: () -> Void
+
+    private let hourRange = Array(0...99)
+    private let minuteSecondRange = Array(0...59)
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Text("시간 설정")
+                .font(.system(size: 16, weight: .semibold))
+                .padding(.top, 16)
+                .padding(.bottom, 12)
+
+            HStack(spacing: 0) {
+                Picker("시간", selection: $hours) {
+                    ForEach(hourRange, id: \.self) { value in
+                        Text("\(value)")
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(maxWidth: .infinity)
+                .clipped()
+
+                Picker("분", selection: $minutes) {
+                    ForEach(minuteSecondRange, id: \.self) { value in
+                        Text("\(value)")
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(maxWidth: .infinity)
+                .clipped()
+
+                Picker("초", selection: $seconds) {
+                    ForEach(minuteSecondRange, id: \.self) { value in
+                        Text("\(value)")
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(maxWidth: .infinity)
+                .clipped()
+            }
+            .padding(.horizontal, 8)
+            HStack {
+                Text("시간")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.gray)
+                    .frame(maxWidth: .infinity)
+                Text("분")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.gray)
+                    .frame(maxWidth: .infinity)
+                Text("초")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.gray)
+                    .frame(maxWidth: .infinity)
+            }
+            .padding(.top, -8)
+
+            Button(action: onDone) {
+                Text("완료")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(AppColor.primary)
+                    .cornerRadius(10)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+            }
+            .buttonStyle(.plain)
         }
-        
-        // 3자리 이상: 마지막 2자리는 초, 나머지는 분
-        let minutesEndIndex = digits.index(digits.endIndex, offsetBy: -2)
-        let minutes = Int(digits[..<minutesEndIndex]) ?? 0
-        let seconds = clampSecondsValue(Int(digits[minutesEndIndex...]) ?? 0)
-        let display = "\(minutes):\(String(format: "%02d", seconds))"
-        let storage = "\(minutes)\(String(format: "%02d", seconds))"
-        return (display, storage)
-    }
-    
-    private func formatFromStorage(_ stored: String) -> String {
-        let digits = digitsOnly(stored)
-        guard !digits.isEmpty else { return "" }
-        
-        if digits.count <= 2 { return digits }
-        
-        let minutesEndIndex = digits.index(digits.endIndex, offsetBy: -2)
-        let minutes = Int(digits[..<minutesEndIndex]) ?? 0
-        let seconds = clampSecondsValue(Int(digits[minutesEndIndex...]) ?? 0)
-        return "\(minutes):\(String(format: "%02d", seconds))"
+        .padding(.bottom, 16)
     }
 }
 
