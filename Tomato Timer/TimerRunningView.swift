@@ -4,6 +4,7 @@ import AVFoundation
 import CoreHaptics
 import Combine
 import CoreData
+import UserNotifications
 
 struct TimerRunningView: View {
     @Environment(\.dismiss) var dismiss
@@ -29,6 +30,7 @@ struct TimerRunningView: View {
     @State private var backgroundTimestamp: Date?
     @State private var backgroundRemainingSeconds: Int = 0
     @State private var backgroundStepIndex: Int = 0
+    @State private var lastTickDate: Date?
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -254,15 +256,16 @@ struct TimerRunningView: View {
             }
         }
         .onReceive(timer) { _ in
-            guard isRunning && !isPaused else { return }
-            
-            if remainingSeconds > 0 {
-                remainingSeconds -= 1
-            } else if remainingSeconds == 0 && currentStepIndex < sortedSteps.count {
-                if !isAwaitingStepConfirmation {
-                    handleStepCompletion()
-                }
+            let now = Date()
+            guard isRunning && !isPaused else {
+                lastTickDate = now
+                return
             }
+
+            let elapsed = max(1, Int(now.timeIntervalSince(lastTickDate ?? now)))
+            lastTickDate = now
+            if elapsed <= 0 { return }
+            applyElapsedTime(elapsed, startingFrom: currentStepIndex, startingRemaining: remainingSeconds)
         }
         .onAppear {
             if let initial = initialConfiguration {
@@ -271,6 +274,8 @@ struct TimerRunningView: View {
                 loadLastNotificationConfiguration()
             }
             initializeTimer()
+            lastTickDate = Date()
+            requestNotificationAuthorization()
             // 화면 켜짐 유지 설정
             UIApplication.shared.isIdleTimerDisabled = isScreenOn
         }
@@ -278,9 +283,13 @@ struct TimerRunningView: View {
             // 화면 켜짐 유지 해제
             UIApplication.shared.isIdleTimerDisabled = false
             stopNotificationLoop()
+            clearStepCompletionNotifications()
         }
         .onChange(of: scenePhase) { _, newValue in
             handleScenePhaseChange(newValue)
+        }
+        .onChange(of: isPaused) { _, _ in
+            lastTickDate = Date()
         }
         .onChange(of: isScreenOn) { oldValue, newValue in
             // 토글이 변경될 때 즉시 적용
@@ -386,12 +395,24 @@ struct TimerRunningView: View {
             backgroundTimestamp = Date()
             backgroundRemainingSeconds = remainingSeconds
             backgroundStepIndex = currentStepIndex
+            scheduleStepCompletionNotification(after: remainingSeconds)
         case .active:
+            clearStepCompletionNotifications()
             guard let backgroundTimestamp else { return }
             let elapsed = Int(Date().timeIntervalSince(backgroundTimestamp))
             self.backgroundTimestamp = nil
             if elapsed <= 0 { return }
-            applyElapsedTime(elapsed, startingFrom: backgroundStepIndex, startingRemaining: backgroundRemainingSeconds)
+            if elapsed >= backgroundRemainingSeconds {
+                currentStepIndex = backgroundStepIndex
+                remainingSeconds = 0
+                totalSeconds = backgroundRemainingSeconds
+                isPaused = true
+                isAwaitingStepConfirmation = true
+                showStepAlert = true
+            } else {
+                applyElapsedTime(elapsed, startingFrom: backgroundStepIndex, startingRemaining: backgroundRemainingSeconds)
+            }
+            lastTickDate = Date()
         @unknown default:
             break
         }
@@ -430,6 +451,26 @@ struct TimerRunningView: View {
     private func stopNotificationLoop() {
         notificationRepeatTimer?.invalidate()
         notificationRepeatTimer = nil
+    }
+
+    private func requestNotificationAuthorization() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
+    }
+
+    private func scheduleStepCompletionNotification(after seconds: Int) {
+        guard seconds > 0 else { return }
+        clearStepCompletionNotifications()
+        let content = UNMutableNotificationContent()
+        content.title = "단계 완료"
+        content.body = "\(currentStepName) 완료. 다음 단계로 넘어가세요."
+        content.sound = .default
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(seconds), repeats: false)
+        let request = UNNotificationRequest(identifier: "routineStepComplete", content: content, trigger: trigger)
+        UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
+    }
+
+    private func clearStepCompletionNotifications() {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["routineStepComplete"])
     }
     
     var configDisplayText: String {
