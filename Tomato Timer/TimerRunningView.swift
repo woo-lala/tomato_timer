@@ -141,7 +141,7 @@ struct TimerRunningView: View {
                             HStack(spacing: 8) {
                                 Image(systemName: "bell.fill")
                                     .foregroundColor(.gray)
-                                Text("알림 모드: \(configDisplayText)")
+                                Text("실행 방식: \(transitionDisplayText)/\(configDisplayText)")
                                     .font(.system(size: 14))
                                     .foregroundColor(.gray)
                                 Spacer()
@@ -908,6 +908,16 @@ struct TimerRunningView: View {
             return "진동"
         case .soundAndVibration:
             return "소리+진동"
+        }
+    }
+
+    var transitionDisplayText: String {
+        let mode = sessionState?.stepTransitionMode ?? initialStepTransitionMode
+        switch mode {
+        case .auto:
+            return "자동"
+        case .manual:
+            return "수동"
         }
     }
 }

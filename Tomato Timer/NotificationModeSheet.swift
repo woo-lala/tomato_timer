@@ -66,50 +66,49 @@ struct NotificationModeSheet: View {
             .padding(.horizontal, AppSpacing.mediumPlus)
             .padding(.top, AppSpacing.large)
             .padding(.bottom, AppSpacing.mediumPlus)
-            
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Step Transition Mode
-                    VStack(spacing: 0) {
-                        HStack {
-                            Text("전환 방식")
-                                .foregroundColor(AppColor.textPrimary)
-                            Spacer()
-                            Picker("전환 방식", selection: $stepTransitionMode) {
-                                Text("자동").tag(StepTransitionMode.auto)
-                                Text("수동").tag(StepTransitionMode.manual)
-                            }
-                            .pickerStyle(.segmented)
-                            .frame(width: 160)
-                        }
-                        .padding(.horizontal, AppSpacing.medium)
-                        .padding(.vertical, AppSpacing.smallPlus)
-                    }
-                    .background(Color.white)
-                    .cornerRadius(AppRadius.button)
-                    .padding(.horizontal, AppSpacing.mediumPlus)
 
-                    // Sound Section
-                    VStack(spacing: 0) {
-                        ToggleRow(title: "소리", isOn: $useSound)
+            VStack(spacing: 16) {
+                // Step Transition Mode
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("단계 진행 방식")
+                        .font(AppFont.callout())
+                        .foregroundColor(AppColor.textSecondary)
+                        .padding(.horizontal, AppSpacing.mediumPlus)
+
+                    HStack(spacing: 12) {
+                        transitionModeCard(
+                            title: "자동",
+                            subtitle: "바로 다음 단계로 시작",
+                            systemImage: "arrow.triangle.2.circlepath",
+                            mode: .auto
+                        )
+                        transitionModeCard(
+                            title: "수동",
+                            subtitle: "직접 다음 단계 시작",
+                            systemImage: "play.circle",
+                            mode: .manual
+                        )
                     }
-                    .background(Color.white)
-                    .cornerRadius(AppRadius.button)
-                    .padding(.horizontal, AppSpacing.mediumPlus)
-                    
-                    // Vibration Section
-                    VStack(spacing: 0) {
-                        ToggleRow(title: "진동", isOn: $useVibration)
-                    }
-                    .background(Color.white)
-                    .cornerRadius(AppRadius.button)
                     .padding(.horizontal, AppSpacing.mediumPlus)
                 }
-                .padding(.bottom, 20)
+
+                // Notification Mode
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("알림 전달 방식")
+                        .font(AppFont.callout())
+                        .foregroundColor(AppColor.textSecondary)
+                        .padding(.horizontal, AppSpacing.mediumPlus)
+
+                    HStack(spacing: 10) {
+                        notificationModeButton(title: "소리", systemImage: "speaker.wave.2", mode: .sound)
+                        notificationModeButton(title: "진동", systemImage: "iphone.radiowaves.left.and.right", mode: .vibration)
+                        notificationModeButton(title: "소리 + 진동", systemImage: "bell.badge", mode: .soundAndVibration)
+                    }
+                    .padding(.horizontal, AppSpacing.mediumPlus)
+                }
             }
-            
-            Spacer()
-            
+            .padding(.bottom, AppSpacing.large)
+
             // Start Button
             Button(action: startRoutine) {
                 Text("시작")
@@ -135,6 +134,12 @@ struct NotificationModeSheet: View {
     var canStart: Bool {
         return useSound || useVibration
     }
+
+    private var selectedNotificationMode: NotificationMode {
+        if useSound && useVibration { return .soundAndVibration }
+        if useSound { return .sound }
+        return .vibration
+    }
     
     private func loadBasicSettings() {
         useSound = true
@@ -158,17 +163,73 @@ struct NotificationModeSheet: View {
         lastVibrationRaw = selectedVibration.rawValue
         
         // Create Config
-        let mode: NotificationMode
-        if useSound && useVibration {
-            mode = .soundAndVibration
-        } else if useSound {
-            mode = .sound
-        } else {
-            mode = .vibration
-        }
-        
-        let config = NotificationConfiguration(mode: mode, sound: selectedSound, vibration: selectedVibration)
+        let config = NotificationConfiguration(mode: selectedNotificationMode, sound: selectedSound, vibration: selectedVibration)
         onStart(routine, config, stepTransitionMode)
         dismiss()
+    }
+
+    private func transitionModeCard(title: String, subtitle: String, systemImage: String, mode: StepTransitionMode) -> some View {
+        let isSelected = stepTransitionMode == mode
+        return Button(action: {
+            stepTransitionMode = mode
+        }) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Image(systemName: systemImage)
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(isSelected ? AppColor.primary : AppColor.textSecondary)
+                    Text(title)
+                    .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(AppColor.textPrimary)
+                }
+                Text(subtitle)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(AppColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
+            .padding(10)
+            .background(isSelected ? AppColor.primary.opacity(0.1) : Color.white)
+            .overlay(
+                RoundedRectangle(cornerRadius: AppRadius.button)
+                    .stroke(isSelected ? AppColor.primary : Color(UIColor.systemGray5), lineWidth: isSelected ? 2 : 1)
+            )
+            .cornerRadius(AppRadius.button)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func notificationModeButton(title: String, systemImage: String, mode: NotificationMode) -> some View {
+        let isSelected = selectedNotificationMode == mode
+        return Button(action: {
+            switch mode {
+            case .sound:
+                useSound = true
+                useVibration = false
+            case .vibration:
+                useSound = false
+                useVibration = true
+            case .soundAndVibration:
+                useSound = true
+                useVibration = true
+            }
+        }) {
+            VStack(spacing: 8) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(isSelected ? AppColor.primary : AppColor.textSecondary)
+                Text(title)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(AppColor.textPrimary)
+            }
+            .frame(maxWidth: .infinity, minHeight: 64)
+            .background(isSelected ? AppColor.primary.opacity(0.1) : Color.white)
+            .overlay(
+                RoundedRectangle(cornerRadius: AppRadius.button)
+                    .stroke(isSelected ? AppColor.primary : Color(UIColor.systemGray5), lineWidth: isSelected ? 2 : 1)
+            )
+            .cornerRadius(AppRadius.button)
+        }
+        .buttonStyle(.plain)
     }
 }

@@ -36,6 +36,13 @@ struct SettingsView: View {
                         .padding(.horizontal, AppSpacing.mediumPlus)
                         .padding(.bottom, AppSpacing.small)
 
+                    Text("알림음과 진동 패턴은 앱이 켜져 있을 때만 적용돼요.")
+                        .font(AppFont.caption())
+                        .foregroundColor(AppColor.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, AppSpacing.mediumPlus)
+                        .padding(.bottom, AppSpacing.small)
+
                     VStack(spacing: 0) {
                         HStack {
                             Text("알림음")
@@ -144,7 +151,7 @@ struct SectionHeader: View {
         HStack {
             Text(title)
                 .font(AppFont.callout())
-                .foregroundColor(AppColor.textSecondary)
+                .foregroundColor(AppColor.textPrimary)
             Spacer()
         }
     }
