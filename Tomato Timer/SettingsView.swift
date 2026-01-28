@@ -4,6 +4,8 @@ import SwiftUI
 struct SettingsView: View {
     // Settings State
     @AppStorage("keepScreenOn") private var keepScreenOn = false
+    @AppStorage("defaultNotificationSound") private var defaultSoundRaw: String = NotificationSound.default.rawValue
+    @AppStorage("defaultNotificationVibration") private var defaultVibrationRaw: String = VibrationPattern.default.rawValue
     
     
     var body: some View {
@@ -27,8 +29,87 @@ struct SettingsView: View {
                     .padding(.horizontal, AppSpacing.mediumPlus)
                 }
                 .padding(.bottom, AppSpacing.large)
+
+                // Section 2: 알림 기본값
+                VStack(spacing: 0) {
+                    SectionHeader(title: "알림 기본값")
+                        .padding(.horizontal, AppSpacing.mediumPlus)
+                        .padding(.bottom, AppSpacing.small)
+
+                    VStack(spacing: 0) {
+                        HStack {
+                            Text("알림음")
+                                .font(AppFont.body())
+                                .foregroundColor(AppColor.textPrimary)
+                            Spacer()
+                            Menu {
+                                ForEach(NotificationSound.allCases, id: \.self) { sound in
+                                    Button(action: {
+                                        defaultSoundRaw = sound.rawValue
+                                        AudioManager.shared.playSound(sound)
+                                    }) {
+                                        if NotificationSound(rawValue: defaultSoundRaw) == sound {
+                                            Label(sound.rawValue, systemImage: "checkmark")
+                                        } else {
+                                            Text(sound.rawValue)
+                                        }
+                                    }
+                                }
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Text(NotificationSound(rawValue: defaultSoundRaw)?.rawValue ?? NotificationSound.default.rawValue)
+                                        .font(AppFont.body())
+                                        .foregroundColor(AppColor.textSecondary)
+                                    Image(systemName: "chevron.up.chevron.down")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(AppColor.textSecondary)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, AppSpacing.medium)
+                        .padding(.vertical, AppSpacing.smallPlus)
+
+                        Divider().padding(.leading, AppSpacing.medium)
+
+                        HStack {
+                            Text("진동 패턴")
+                                .font(AppFont.body())
+                                .foregroundColor(AppColor.textPrimary)
+                            Spacer()
+                            Menu {
+                                ForEach(VibrationPattern.allCases, id: \.self) { pattern in
+                                    Button(action: {
+                                        defaultVibrationRaw = pattern.rawValue
+                                        HapticManager.shared.playVibration(pattern)
+                                    }) {
+                                        if VibrationPattern(rawValue: defaultVibrationRaw) == pattern {
+                                            Label(pattern.rawValue, systemImage: "checkmark")
+                                        } else {
+                                            Text(pattern.rawValue)
+                                        }
+                                    }
+                                }
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Text(VibrationPattern(rawValue: defaultVibrationRaw)?.rawValue ?? VibrationPattern.default.rawValue)
+                                        .font(AppFont.body())
+                                        .foregroundColor(AppColor.textSecondary)
+                                    Image(systemName: "chevron.up.chevron.down")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(AppColor.textSecondary)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, AppSpacing.medium)
+                        .padding(.vertical, AppSpacing.smallPlus)
+                    }
+                    .background(Color.white)
+                    .cornerRadius(AppRadius.button)
+                    .padding(.horizontal, AppSpacing.mediumPlus)
+                }
+                .padding(.bottom, AppSpacing.large)
                 
-                // Section 2: 정보
+                // Section 3: 정보
                 VStack(spacing: 0) {
                     SectionHeader(title: "정보")
                         .padding(.horizontal, AppSpacing.mediumPlus)

@@ -19,6 +19,8 @@ struct NotificationModeSheet: View {
     @AppStorage("lastUsedVibrationEnabled") private var lastVibrationEnabled: Bool = false
     @AppStorage("lastUsedSound") private var lastSoundRaw: String = NotificationSound.default.rawValue
     @AppStorage("lastUsedVibration") private var lastVibrationRaw: String = VibrationPattern.default.rawValue
+    @AppStorage("defaultNotificationSound") private var defaultSoundRaw: String = NotificationSound.default.rawValue
+    @AppStorage("defaultNotificationVibration") private var defaultVibrationRaw: String = VibrationPattern.default.rawValue
     
     @State private var stepTransitionMode: StepTransitionMode = .manual
 
@@ -28,7 +30,7 @@ struct NotificationModeSheet: View {
         VStack(spacing: 0) {
             // Header
             VStack(alignment: .leading, spacing: AppSpacing.medium) {
-                Text("알림 방식")
+                Text("실행 방식")
                     .font(AppFont.title())
                     .foregroundColor(AppColor.textPrimary)
                 
@@ -90,46 +92,6 @@ struct NotificationModeSheet: View {
                     // Sound Section
                     VStack(spacing: 0) {
                         ToggleRow(title: "소리", isOn: $useSound)
-                        
-                        if useSound {
-                            Divider().padding(.leading, AppSpacing.medium)
-                            
-                            Button(action: {
-                                // Show sound picker? No, inline expansion or sheet
-                                // Let's use Menu or NavigationLink-ish behavior or just expand
-                                // Keeping it simple with existing sheet approach or inline menu
-                            }) {
-                                HStack {
-                                    Text("알림음")
-                                        .foregroundColor(AppColor.textPrimary)
-                                    Spacer()
-                                    Menu {
-                                        ForEach(NotificationSound.allCases, id: \.self) { sound in
-                                            Button(action: {
-                                                selectedSound = sound
-                                                AudioManager.shared.playSound(sound)
-                                            }) {
-                                                if selectedSound == sound {
-                                                    Label(sound.rawValue, systemImage: "checkmark")
-                                                } else {
-                                                    Text(sound.rawValue)
-                                                }
-                                            }
-                                        }
-                                    } label: {
-                                        HStack {
-                                            Text(selectedSound.rawValue)
-                                                .foregroundColor(AppColor.textSecondary)
-                                            Image(systemName: "chevron.up.chevron.down")
-                                                .font(.system(size: 12))
-                                                .foregroundColor(AppColor.textSecondary)
-                                        }
-                                    }
-                                }
-                                .padding(.horizontal, AppSpacing.medium)
-                                .padding(.vertical, AppSpacing.smallPlus)
-                            }
-                        }
                     }
                     .background(Color.white)
                     .cornerRadius(AppRadius.button)
@@ -138,40 +100,6 @@ struct NotificationModeSheet: View {
                     // Vibration Section
                     VStack(spacing: 0) {
                         ToggleRow(title: "진동", isOn: $useVibration)
-                        
-                        if useVibration {
-                            Divider().padding(.leading, AppSpacing.medium)
-                            
-                            HStack {
-                                Text("진동 패턴")
-                                    .foregroundColor(AppColor.textPrimary)
-                                Spacer()
-                                Menu {
-                                    ForEach(VibrationPattern.allCases, id: \.self) { pattern in
-                                        Button(action: {
-                                            selectedVibration = pattern
-                                            HapticManager.shared.playVibration(pattern)
-                                        }) {
-                                            if selectedVibration == pattern {
-                                                Label(pattern.rawValue, systemImage: "checkmark")
-                                            } else {
-                                                Text(pattern.rawValue)
-                                            }
-                                        }
-                                    }
-                                } label: {
-                                    HStack {
-                                        Text(selectedVibration.rawValue)
-                                            .foregroundColor(AppColor.textSecondary)
-                                        Image(systemName: "chevron.up.chevron.down")
-                                            .font(.system(size: 12))
-                                            .foregroundColor(AppColor.textSecondary)
-                                    }
-                                }
-                            }
-                            .padding(.horizontal, AppSpacing.medium)
-                            .padding(.vertical, AppSpacing.smallPlus)
-                        }
                     }
                     .background(Color.white)
                     .cornerRadius(AppRadius.button)
@@ -211,15 +139,15 @@ struct NotificationModeSheet: View {
     private func loadBasicSettings() {
         useSound = true
         useVibration = false
-        selectedSound = .default
-        selectedVibration = .default
+        selectedSound = NotificationSound(rawValue: defaultSoundRaw) ?? .default
+        selectedVibration = VibrationPattern(rawValue: defaultVibrationRaw) ?? .default
     }
     
     private func loadLastUsedSettings() {
         useSound = lastSoundEnabled
         useVibration = lastVibrationEnabled
-        selectedSound = NotificationSound(rawValue: lastSoundRaw) ?? .default
-        selectedVibration = VibrationPattern(rawValue: lastVibrationRaw) ?? .default
+        selectedSound = NotificationSound(rawValue: defaultSoundRaw) ?? .default
+        selectedVibration = VibrationPattern(rawValue: defaultVibrationRaw) ?? .default
     }
     
     private func startRoutine() {
