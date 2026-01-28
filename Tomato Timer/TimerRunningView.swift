@@ -536,28 +536,29 @@ struct TimerRunningView: View {
                 return
             } else {
                 var updatedState = state
-                var index = stepIndex
-                var didAdvance = false
-                var currentElapsed = elapsed
-                while index < timeline.count && currentElapsed >= timeline[index].endOffset {
-                    let nextIndex = index + 1
-                    if nextIndex >= timeline.count {
-                        updatedState.stepRunState = .completed
-                        sessionState = updatedState
-                        SessionStore.save(updatedState)
-                        finishSession()
-                        return
+                // In auto mode, derive the current index from elapsed without mutating startAt.
+                var targetIndex = stepIndex
+                for item in timeline {
+                    if elapsed < item.endOffset {
+                        targetIndex = item.index
+                        break
                     }
-                    updatedState.currentStepIndex = nextIndex
-                    updatedState.startAt = now.addingTimeInterval(TimeInterval(-timeline[nextIndex].startOffset))
-                    updatedState.isPaused = false
-                    updatedState.pausedAt = nil
-                    updatedState.accumulatedPausedSeconds = 0
-                    updatedState.stepRunState = .running
-                    index = nextIndex
-                    currentElapsed = updatedState.activeElapsedSeconds(now: now)
-                    didAdvance = true
+                    targetIndex = item.index
                 }
+                if elapsed >= (timeline.last?.endOffset ?? 0) {
+                    updatedState.stepRunState = .completed
+                    sessionState = updatedState
+                    SessionStore.save(updatedState)
+                    finishSession()
+                    return
+                }
+
+                let didAdvance = targetIndex != updatedState.currentStepIndex
+                updatedState.currentStepIndex = targetIndex
+                updatedState.isPaused = false
+                updatedState.pausedAt = nil
+                updatedState.stepRunState = .running
+
                 if didAdvance && scenePhase == .active {
                     playNotification()
                     triggerAutoAdvanceAlert()
@@ -567,8 +568,7 @@ struct TimerRunningView: View {
                 scheduleNotifications(for: updatedState)
                 currentStepIndex = updatedState.currentStepIndex
                 let newEnd = timeline[currentStepIndex].endOffset
-                let newElapsed = updatedState.activeElapsedSeconds(now: now)
-                remainingSeconds = max(newEnd - newElapsed, 0)
+                remainingSeconds = max(newEnd - elapsed, 0)
                 return
             }
         }
@@ -591,9 +591,9 @@ struct TimerRunningView: View {
         var identifiers: [String] = []
         let stepIndex = min(max(state.currentStepIndex, 0), timeline.count - 1)
         if state.stepTransitionMode == .auto {
-            let item = timeline[stepIndex]
-            let remaining = item.endOffset - elapsed
-            if remaining > 0 {
+            for item in timeline where item.endOffset > elapsed {
+                let remaining = item.endOffset - elapsed
+                if remaining <= 0 { continue }
                 let content = UNMutableNotificationContent()
                 let identifier: String
                 if item.index == timeline.count - 1 {
