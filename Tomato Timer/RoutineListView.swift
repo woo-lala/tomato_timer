@@ -176,7 +176,7 @@ struct CDRoutineCard: View {
             .presentationDragIndicator(.visible)
         }
         .navigationDestination(isPresented: $startTimer) {
-            TimerRunningView(routine: routine, initialConfiguration: selectedConfiguration)
+            TimerRunningView(routine: routine, initialConfiguration: selectedConfiguration, forceNewSession: true)
         }
         .navigationDestination(isPresented: $showEditView) {
             RoutineCreateView(routine: routine)
@@ -272,7 +272,7 @@ struct RoutineCard: View {
             .presentationDragIndicator(.visible)
         }
         .navigationDestination(isPresented: $startTimer) {
-            TimerRunningView(routine: routine, initialConfiguration: nil)
+            TimerRunningView(routine: routine, initialConfiguration: nil, forceNewSession: true)
         }
     }
 }

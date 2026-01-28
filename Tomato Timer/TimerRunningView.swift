@@ -13,6 +13,7 @@ struct TimerRunningView: View {
     
     let routine: Routine
     let initialConfiguration: NotificationConfiguration?
+    let forceNewSession: Bool
     @State private var configuration: NotificationConfiguration = .default
     @State private var showAlarmSettings: Bool = false
     
@@ -24,12 +25,19 @@ struct TimerRunningView: View {
     @State private var sessionState: SessionState?
     @State private var lastSyncedStepIndex: Int?
     @State private var hasSyncedOnce: Bool = false
+    @State private var showManualNextAlert: Bool = false
+    @State private var hasShownManualAlertForStep: Int?
+    @AppStorage("seqtimer.didOpenFromNotification") private var didOpenFromNotification: Bool = false
+    @State private var manualAlertNotificationTimers: [DispatchWorkItem] = []
+    private let backgroundRepeatCount = 5
+    private let backgroundRepeatInterval: TimeInterval = 2.2
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
-    init(routine: Routine, initialConfiguration: NotificationConfiguration?) {
+    init(routine: Routine, initialConfiguration: NotificationConfiguration?, forceNewSession: Bool = false) {
         self.routine = routine
         self.initialConfiguration = initialConfiguration
+        self.forceNewSession = forceNewSession
         _isScreenOn = State(initialValue: routine.keepScreenOn)
     }
     
@@ -220,20 +228,32 @@ struct TimerRunningView: View {
                             .foregroundColor(.black)
                             .font(.system(size: 18, weight: .medium))
                     }
+            }
+        }
+        .alert("루틴 종료", isPresented: $showFinishAlert) {
+            Button("확인", action: {
+                dismiss()
+            })
+        } message: {
+            Text("모든 단계를 완료했습니다!")
+        }
+        .alert(manualAlertTitle, isPresented: $showManualNextAlert) {
+            Button(manualAlertPrimaryLabel, action: {
+                startNextStepFromManualAlert()
+            })
+            if manualAlertShowsLaterButton {
+                Button("나중에", role: .cancel) {
+                    handleManualAlertLater()
                 }
             }
-            .alert("루틴 종료", isPresented: $showFinishAlert) {
-                Button("확인", action: {
-                    dismiss()
-                })
-            } message: {
-                Text("모든 단계를 완료했습니다!")
-            }
-            .sheet(isPresented: $showAlarmSettings) {
-                NotificationModeSheet(routine: routine, onStart: { selectedRoutine, config in
-                    configuration = config
-                    if var state = sessionState {
-                        applyConfiguration(config, to: &state)
+        } message: {
+            Text(manualAlertMessage)
+        }
+        .sheet(isPresented: $showAlarmSettings) {
+            NotificationModeSheet(routine: routine, onStart: { selectedRoutine, config in
+                configuration = config
+                if var state = sessionState {
+                    applyConfiguration(config, to: &state)
                         sessionState = state
                         SessionStore.save(state)
                         if state.isPaused == false {
@@ -269,6 +289,15 @@ struct TimerRunningView: View {
         .onChange(of: scenePhase) { _, newValue in
             if newValue == .active {
                 syncDisplay(now: Date())
+                maybeShowManualAlert()
+                SessionStore.clearScheduledNotifications()
+                if let state = sessionState, state.isPaused == false {
+                    scheduleNotifications(for: state)
+                }
+            } else if newValue == .background || newValue == .inactive {
+                if let state = sessionState {
+                    scheduleBackgroundRepeatNotificationsIfNeeded(state)
+                }
             }
         }
         .onChange(of: isScreenOn) { oldValue, newValue in
@@ -300,6 +329,11 @@ struct TimerRunningView: View {
     
     private func loadOrStartSession() {
         guard !timeline.isEmpty else { return }
+        if forceNewSession {
+            SessionStore.clear()
+            startSession()
+            return
+        }
         if let routineId = routine.routineId,
            let stored = SessionStore.load(),
            stored.routineId == routineId {
@@ -327,7 +361,9 @@ struct TimerRunningView: View {
             pausedAt: nil,
             accumulatedPausedSeconds: 0,
             currentStepIndex: 0,
-            notificationMode: configuration.mode == .vibration ? .vibration : .sound,
+            stepTransitionMode: .manual,
+            stepRunState: .running,
+            notificationMode: configuration.mode,
             notificationPatternId: notificationPatternId(from: configuration),
             scheduledNotificationIds: []
         )
@@ -354,6 +390,9 @@ struct TimerRunningView: View {
         }
         state.isPaused = false
         state.pausedAt = nil
+        if state.stepRunState == .waitingForNext {
+            state.stepRunState = .running
+        }
         sessionState = state
         SessionStore.save(state)
         scheduleNotifications(for: state)
@@ -365,6 +404,8 @@ struct TimerRunningView: View {
         sessionState = nil
         hasSyncedOnce = false
         lastSyncedStepIndex = nil
+        showManualNextAlert = false
+        hasShownManualAlertForStep = nil
         SessionStore.clear()
     }
 
@@ -372,6 +413,8 @@ struct TimerRunningView: View {
         guard let state = sessionState else { return }
         hasSyncedOnce = false
         lastSyncedStepIndex = nil
+        showManualNextAlert = false
+        hasShownManualAlertForStep = nil
         cancelPendingNotifications(for: state.sessionId, stepCount: timeline.count)
         SessionStore.clear()
         showFinishAlert = true
@@ -427,6 +470,7 @@ struct TimerRunningView: View {
         state.isPaused = false
         state.pausedAt = nil
         state.accumulatedPausedSeconds = 0
+        state.stepRunState = .running
         sessionState = state
         SessionStore.save(state)
         scheduleNotifications(for: state)
@@ -456,18 +500,45 @@ struct TimerRunningView: View {
         let elapsed = state.activeElapsedSeconds(now: now)
         let endOffset = timeline[stepIndex].endOffset
         if elapsed >= endOffset {
-            let over = elapsed - endOffset
-            if over > 0 {
-                state.accumulatedPausedSeconds += over
+            if state.stepTransitionMode == .manual {
+                if state.stepRunState != .waitingForNext {
+                    let over = elapsed - endOffset
+                    if over > 0 {
+                        state.accumulatedPausedSeconds += over
+                    }
+                }
+                state.isPaused = true
+                state.pausedAt = now
+                state.stepRunState = .waitingForNext
+                sessionState = state
+                SessionStore.save(state)
+                cancelPendingNotifications(for: state.sessionId, stepCount: timeline.count)
+                currentStepIndex = stepIndex
+                remainingSeconds = 0
+                maybeShowManualAlert()
+                return
+            } else {
+                let nextIndex = stepIndex + 1
+                if nextIndex >= timeline.count {
+                    state.stepRunState = .completed
+                    sessionState = state
+                    SessionStore.save(state)
+                    finishSession()
+                    return
+                }
+                state.currentStepIndex = nextIndex
+                state.startAt = now.addingTimeInterval(TimeInterval(-timeline[nextIndex].startOffset))
+                state.isPaused = false
+                state.pausedAt = nil
+                state.accumulatedPausedSeconds = 0
+                state.stepRunState = .running
+                sessionState = state
+                SessionStore.save(state)
+                scheduleNotifications(for: state)
+                currentStepIndex = nextIndex
+                remainingSeconds = timeline[nextIndex].durationSeconds
+                return
             }
-            state.isPaused = true
-            state.pausedAt = now
-            sessionState = state
-            SessionStore.save(state)
-            cancelPendingNotifications(for: state.sessionId, stepCount: timeline.count)
-            currentStepIndex = stepIndex
-            remainingSeconds = 0
-            return
         }
         currentStepIndex = stepIndex
         remainingSeconds = max(endOffset - elapsed, 0)
@@ -478,7 +549,6 @@ struct TimerRunningView: View {
         }
         if lastSyncedStepIndex != currentStepIndex && state.isPaused == false {
             lastSyncedStepIndex = currentStepIndex
-            playNotification()
         }
     }
 
@@ -488,25 +558,48 @@ struct TimerRunningView: View {
         var requests: [UNNotificationRequest] = []
         var identifiers: [String] = []
         let stepIndex = min(max(state.currentStepIndex, 0), timeline.count - 1)
-        let item = timeline[stepIndex]
-        let remaining = item.endOffset - elapsed
-        if remaining > 0 {
-            let content = UNMutableNotificationContent()
-            let identifier: String
-            if item.index == timeline.count - 1 {
-                content.title = "루틴 완료"
-                content.body = "\(routine.name ?? "루틴")이(가) 완료되었습니다."
-                identifier = completionNotificationIdentifier(sessionId: state.sessionId)
-            } else {
-                let nextName = timeline[item.index + 1].name
-                content.title = "단계 완료"
-                content.body = "\(item.name) 완료. 다음: \(nextName)"
-                identifier = notificationIdentifier(sessionId: state.sessionId, stepIndex: item.index)
+        if state.stepTransitionMode == .auto {
+            for item in timeline where item.endOffset > elapsed {
+                let remaining = item.endOffset - elapsed
+                if remaining <= 0 { continue }
+                let content = UNMutableNotificationContent()
+                let identifier: String
+                if item.index == timeline.count - 1 {
+                    content.title = "루틴 완료"
+                    content.body = "\(routine.name ?? "루틴")이(가) 완료되었습니다."
+                    identifier = completionNotificationIdentifier(sessionId: state.sessionId)
+                } else {
+                    let nextName = timeline[item.index + 1].name
+                    content.title = "단계 완료"
+                    content.body = "\(item.name) 완료. 다음: \(nextName)"
+                    identifier = notificationIdentifier(sessionId: state.sessionId, stepIndex: item.index)
+                }
+                content.sound = notificationSound(for: configuration)
+                let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(remaining), repeats: false)
+                requests.append(UNNotificationRequest(identifier: identifier, content: content, trigger: trigger))
+                identifiers.append(identifier)
             }
-            content.sound = notificationSound(for: configuration)
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(remaining), repeats: false)
-            requests.append(UNNotificationRequest(identifier: identifier, content: content, trigger: trigger))
-            identifiers.append(identifier)
+        } else {
+            let item = timeline[stepIndex]
+            let remaining = item.endOffset - elapsed
+            if remaining > 0 {
+                let content = UNMutableNotificationContent()
+                let identifier: String
+                if item.index == timeline.count - 1 {
+                    content.title = "루틴 완료"
+                    content.body = "\(routine.name ?? "루틴")이(가) 완료되었습니다."
+                    identifier = completionNotificationIdentifier(sessionId: state.sessionId)
+                } else {
+                    let nextName = timeline[item.index + 1].name
+                    content.title = "단계 완료"
+                    content.body = "\(item.name) 완료. 다음: \(nextName)"
+                    identifier = notificationIdentifier(sessionId: state.sessionId, stepIndex: item.index)
+                }
+                content.sound = notificationSound(for: configuration)
+                let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(remaining), repeats: false)
+                requests.append(UNNotificationRequest(identifier: identifier, content: content, trigger: trigger))
+                identifiers.append(identifier)
+            }
         }
 
         cancelPendingNotifications(for: state.sessionId, stepCount: timeline.count)
@@ -519,6 +612,53 @@ struct TimerRunningView: View {
             sessionState = updated
             SessionStore.save(updated)
         }
+    }
+
+    private func scheduleBackgroundRepeatNotificationsIfNeeded(_ state: SessionState) {
+        guard state.stepTransitionMode == .manual else { return }
+        guard state.isPaused == false else { return }
+        guard !timeline.isEmpty else { return }
+        let stepIndex = min(max(state.currentStepIndex, 0), timeline.count - 1)
+        let elapsed = state.activeElapsedSeconds(now: Date())
+        let endOffset = timeline[stepIndex].endOffset
+        let remaining = endOffset - elapsed
+        guard remaining > 0 else { return }
+
+        SessionStore.clearScheduledNotifications()
+
+        var requests: [UNNotificationRequest] = []
+        var identifiers: [String] = []
+        for offsetIndex in 0..<backgroundRepeatCount {
+            let fireAfter = TimeInterval(remaining) + (backgroundRepeatInterval * Double(offsetIndex))
+            let content = UNMutableNotificationContent()
+            if stepIndex == timeline.count - 1 {
+                content.title = "루틴 완료"
+                content.body = "\(routine.name ?? "루틴")이(가) 완료되었습니다."
+            } else {
+                let nextName = timeline[stepIndex + 1].name
+                content.title = "단계 완료"
+                content.body = "\(timeline[stepIndex].name) 완료. 다음: \(nextName)"
+            }
+            content.sound = notificationSound(for: configuration)
+            let identifier = backgroundRepeatIdentifier(sessionId: state.sessionId, stepIndex: stepIndex, repeatIndex: offsetIndex)
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: fireAfter, repeats: false)
+            requests.append(UNNotificationRequest(identifier: identifier, content: content, trigger: trigger))
+            identifiers.append(identifier)
+        }
+
+        let center = UNUserNotificationCenter.current()
+        for request in requests {
+            center.add(request, withCompletionHandler: nil)
+        }
+        if var updated = sessionState {
+            updated.scheduledNotificationIds = identifiers
+            sessionState = updated
+            SessionStore.save(updated)
+        }
+    }
+
+    private func backgroundRepeatIdentifier(sessionId: UUID, stepIndex: Int, repeatIndex: Int) -> String {
+        "seqtimer.\(sessionId.uuidString).step.\(stepIndex).repeat.\(repeatIndex)"
     }
 
     private func cancelPendingNotifications(for sessionId: UUID, stepCount: Int) {
@@ -563,7 +703,7 @@ struct TimerRunningView: View {
     }
 
     private func applyConfiguration(_ configuration: NotificationConfiguration, to state: inout SessionState) {
-        state.notificationMode = configuration.mode == .vibration ? .vibration : .sound
+        state.notificationMode = configuration.mode
         state.notificationPatternId = notificationPatternId(from: configuration)
     }
 
@@ -592,8 +732,113 @@ struct TimerRunningView: View {
             default:
                 sound = .default
             }
-            return NotificationConfiguration(mode: .sound, sound: sound, vibration: fallback.vibration)
+            return NotificationConfiguration(mode: state.notificationMode, sound: sound, vibration: fallback.vibration)
         }
+    }
+
+    private func maybeShowManualAlert() {
+        guard scenePhase == .active else { return }
+        guard let state = sessionState else { return }
+        guard state.stepTransitionMode == .manual else { return }
+        guard state.stepRunState == .waitingForNext else { return }
+        if hasShownManualAlertForStep == state.currentStepIndex { return }
+        hasShownManualAlertForStep = state.currentStepIndex
+        if didOpenFromNotification {
+            didOpenFromNotification = false
+        } else {
+            playNotificationRepeating(count: 5, interval: 2.2)
+        }
+        showManualNextAlert = true
+    }
+
+    private var manualAlertTitle: String {
+        guard !timeline.isEmpty else { return "단계 완료" }
+        let stepIndex = min(max(currentStepIndex, 0), timeline.count - 1)
+        return "\(timeline[stepIndex].name) 완료"
+    }
+
+    private var manualAlertMessage: String {
+        let nextIndex = currentStepIndex + 1
+        guard nextIndex < timeline.count else { return "마지막 단계입니다." }
+        return "다음 단계인 \(timeline[nextIndex].name)를 시작할까요?"
+    }
+
+    private var manualAlertPrimaryLabel: String {
+        let nextIndex = currentStepIndex + 1
+        guard nextIndex < timeline.count else { return "확인" }
+        return "\(timeline[nextIndex].name) 시작"
+    }
+
+    private var manualAlertShowsLaterButton: Bool {
+        let nextIndex = currentStepIndex + 1
+        return nextIndex < timeline.count
+    }
+
+    private func startNextStepFromManualAlert() {
+        guard var state = sessionState else { return }
+        guard state.stepTransitionMode == .manual else { return }
+        guard state.stepRunState == .waitingForNext else { return }
+        guard !timeline.isEmpty else { return }
+        let nextIndex = state.currentStepIndex + 1
+        if nextIndex >= timeline.count {
+            cancelManualAlertNotifications()
+            finishSession()
+            return
+        }
+        let now = Date()
+        state.currentStepIndex = nextIndex
+        state.startAt = now.addingTimeInterval(TimeInterval(-timeline[nextIndex].startOffset))
+        state.isPaused = false
+        state.pausedAt = nil
+        state.accumulatedPausedSeconds = 0
+        state.stepRunState = .running
+        sessionState = state
+        SessionStore.save(state)
+        scheduleNotifications(for: state)
+        cancelManualAlertNotifications()
+        showManualNextAlert = false
+        syncDisplay(now: Date())
+    }
+
+    private func handleManualAlertLater() {
+        guard var state = sessionState else { return }
+        guard state.stepTransitionMode == .manual else { return }
+        guard !timeline.isEmpty else { return }
+        let nextIndex = state.currentStepIndex + 1
+        if nextIndex >= timeline.count {
+            finishSession()
+            return
+        }
+        let now = Date()
+        state.currentStepIndex = nextIndex
+        state.startAt = now.addingTimeInterval(TimeInterval(-timeline[nextIndex].startOffset))
+        state.accumulatedPausedSeconds = 0
+        state.isPaused = true
+        state.pausedAt = now
+        state.stepRunState = .waitingForNext
+        sessionState = state
+        SessionStore.save(state)
+        cancelPendingNotifications(for: state.sessionId, stepCount: timeline.count)
+        cancelManualAlertNotifications()
+        showManualNextAlert = false
+        syncDisplay(now: Date())
+    }
+
+    private func playNotificationRepeating(count: Int, interval: TimeInterval) {
+        guard count > 0 else { return }
+        cancelManualAlertNotifications()
+        for index in 0..<count {
+            let workItem = DispatchWorkItem {
+                playNotification()
+            }
+            manualAlertNotificationTimers.append(workItem)
+            DispatchQueue.main.asyncAfter(deadline: .now() + (interval * Double(index)), execute: workItem)
+        }
+    }
+
+    private func cancelManualAlertNotifications() {
+        manualAlertNotificationTimers.forEach { $0.cancel() }
+        manualAlertNotificationTimers = []
     }
 
     private func formatTime(_ seconds: Int) -> String {
@@ -622,7 +867,7 @@ struct TimerRunningView: View {
 #Preview {
     // Use a simple stub for preview
     let stub = Routine()
-    TimerRunningView(routine: stub, initialConfiguration: nil)
+    TimerRunningView(routine: stub, initialConfiguration: nil, forceNewSession: true)
 }
 
 // MARK: - Local Managers (Consolidated for compilation visibility)

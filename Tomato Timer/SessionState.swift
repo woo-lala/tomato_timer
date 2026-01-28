@@ -1,4 +1,5 @@
 import Foundation
+import UserNotifications
 
 struct SessionState: Codable, Equatable {
     var sessionId: UUID
@@ -8,6 +9,8 @@ struct SessionState: Codable, Equatable {
     var pausedAt: Date?
     var accumulatedPausedSeconds: Int
     var currentStepIndex: Int
+    var stepTransitionMode: StepTransitionMode
+    var stepRunState: StepRunState
     var notificationMode: NotificationMode
     var notificationPatternId: String
     var scheduledNotificationIds: [String]
@@ -29,6 +32,8 @@ struct SessionState: Codable, Equatable {
         pausedAt: Date?,
         accumulatedPausedSeconds: Int,
         currentStepIndex: Int,
+        stepTransitionMode: StepTransitionMode,
+        stepRunState: StepRunState,
         notificationMode: NotificationMode,
         notificationPatternId: String,
         scheduledNotificationIds: [String]
@@ -40,6 +45,8 @@ struct SessionState: Codable, Equatable {
         self.pausedAt = pausedAt
         self.accumulatedPausedSeconds = accumulatedPausedSeconds
         self.currentStepIndex = currentStepIndex
+        self.stepTransitionMode = stepTransitionMode
+        self.stepRunState = stepRunState
         self.notificationMode = notificationMode
         self.notificationPatternId = notificationPatternId
         self.scheduledNotificationIds = scheduledNotificationIds
@@ -54,10 +61,23 @@ struct SessionState: Codable, Equatable {
         pausedAt = try container.decodeIfPresent(Date.self, forKey: .pausedAt)
         accumulatedPausedSeconds = try container.decodeIfPresent(Int.self, forKey: .accumulatedPausedSeconds) ?? 0
         currentStepIndex = try container.decodeIfPresent(Int.self, forKey: .currentStepIndex) ?? 0
+        stepTransitionMode = try container.decodeIfPresent(StepTransitionMode.self, forKey: .stepTransitionMode) ?? .manual
+        stepRunState = try container.decodeIfPresent(StepRunState.self, forKey: .stepRunState) ?? .running
         notificationMode = try container.decodeIfPresent(NotificationMode.self, forKey: .notificationMode) ?? .sound
         notificationPatternId = try container.decodeIfPresent(String.self, forKey: .notificationPatternId) ?? "basic"
         scheduledNotificationIds = try container.decodeIfPresent([String].self, forKey: .scheduledNotificationIds) ?? []
     }
+}
+
+enum StepTransitionMode: String, Codable {
+    case auto
+    case manual
+}
+
+enum StepRunState: String, Codable {
+    case running
+    case waitingForNext
+    case completed
 }
 
 enum SessionStore {
@@ -78,6 +98,14 @@ enum SessionStore {
 
     static func clear() {
         UserDefaults.standard.removeObject(forKey: Keys.state)
+    }
+
+    static func clearScheduledNotifications() {
+        guard var state = load() else { return }
+        guard !state.scheduledNotificationIds.isEmpty else { return }
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: state.scheduledNotificationIds)
+        state.scheduledNotificationIds = []
+        save(state)
     }
 }
 
