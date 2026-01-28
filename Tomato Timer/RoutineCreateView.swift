@@ -233,7 +233,7 @@ struct RoutineCreateView: View {
     private func getRoutineTimeDisplay(_ routine: Routine) -> String {
         let steps = routine.steps as? Set<RoutineStep> ?? []
         let sortedSteps = steps.sorted { ($0.order, $0.stepId?.uuidString ?? "") < ($1.order, $1.stepId?.uuidString ?? "") }
-        return sortedSteps.map { "\(Int($0.minutes))" }.joined(separator: "/")
+        return sortedSteps.map { formatCompactDuration(Int($0.durationSeconds)) }.joined(separator: "/")
     }
     
     private func applyRoutineTemplate(_ routine: Routine) {
@@ -241,9 +241,8 @@ struct RoutineCreateView: View {
         let routineSteps = routine.steps as? Set<RoutineStep> ?? []
         let sortedSteps = routineSteps.sorted { ($0.order, $0.stepId?.uuidString ?? "") < ($1.order, $1.stepId?.uuidString ?? "") }
         self.steps = sortedSteps.map { step in
-            let minutes = String(format: "%02d", step.minutes)
-            let seconds = String(format: "%02d", step.seconds)
-            return RoutineStepData(name: step.type ?? "작업", duration: minutes + seconds)
+            let storage = storageString(from: Int(step.durationSeconds))
+            return RoutineStepData(name: step.title ?? "작업", duration: storage)
         }
     }
     
@@ -305,26 +304,12 @@ struct RoutineCreateView: View {
         for (index, step) in steps.enumerated() {
             // duration은 숫자만 저장되어 있음 (예: "2500", "25000")
             // 마지막 2글자는 초, 나머지는 분
-            let minutes: Int16
-            let seconds: Int16
-            
-            if step.duration.count >= 3 {
-                let minuteString = String(step.duration.dropLast(2))
-                let secondString = String(step.duration.suffix(2))
-                minutes = Int16(Int(minuteString) ?? 0)
-                seconds = Int16(Int(secondString) ?? 0)
-            } else {
-                // 2글자 이하는 초로 해석
-                minutes = 0
-                seconds = Int16(Int(step.duration) ?? 0)
-            }
-            
+            let totalSeconds = totalSecondsFromStorage(step.duration)
             CoreDataManager.shared.createRoutineStep(
                 routine: targetRoutine,
                 order: Int16(index),
-                type: step.name,
-                minutes: minutes,
-                seconds: seconds
+                title: step.name,
+                durationSeconds: Int64(totalSeconds)
             )
         }
         
@@ -338,20 +323,48 @@ struct RoutineCreateView: View {
     }
 
     private func isZeroDuration(_ duration: String) -> Bool {
-        let digits = duration.filter { "0123456789".contains($0) }
-        guard !digits.isEmpty else { return true }
-        if digits.count <= 2 {
-            return (Int(digits) ?? 0) == 0
-        }
-        let minutesEndIndex = digits.index(digits.endIndex, offsetBy: -2)
-        let minutes = Int(digits[..<minutesEndIndex]) ?? 0
-        let seconds = Int(digits[minutesEndIndex...]) ?? 0
-        return minutes == 0 && seconds == 0
+        totalSecondsFromStorage(duration) == 0
     }
 
     private func showValidation(message: String) {
         validationMessage = message
         showValidationAlert = true
+    }
+
+    private func totalSecondsFromStorage(_ stored: String) -> Int {
+        let digits = stored.filter { "0123456789".contains($0) }
+        guard !digits.isEmpty else { return 0 }
+        if digits.count <= 2 {
+            return clampSecondsValue(Int(digits) ?? 0)
+        }
+        let minutesEndIndex = digits.index(digits.endIndex, offsetBy: -2)
+        let minutes = Int(digits[..<minutesEndIndex]) ?? 0
+        let seconds = clampSecondsValue(Int(digits[minutesEndIndex...]) ?? 0)
+        return max(minutes * 60 + seconds, 0)
+    }
+
+    private func storageString(from totalSeconds: Int) -> String {
+        let total = max(totalSeconds, 0)
+        let totalMinutes = total / 60
+        let seconds = total % 60
+        return "\(totalMinutes)\(String(format: "%02d", seconds))"
+    }
+
+    private func formatCompactDuration(_ totalSeconds: Int) -> String {
+        let total = max(totalSeconds, 0)
+        let minutes = total / 60
+        let seconds = total % 60
+        if minutes > 0 && seconds > 0 {
+            return "\(minutes)m\(seconds)s"
+        }
+        if minutes > 0 {
+            return "\(minutes)m"
+        }
+        return "\(seconds)s"
+    }
+
+    private func clampSecondsValue(_ value: Int) -> Int {
+        min(max(value, 0), 59)
     }
     
     func onAppear() {
@@ -364,9 +377,8 @@ struct RoutineCreateView: View {
             let routineSteps = routine.steps as? Set<RoutineStep> ?? []
             let sortedSteps = routineSteps.sorted { ($0.order, $0.stepId?.uuidString ?? "") < ($1.order, $1.stepId?.uuidString ?? "") }
             steps = sortedSteps.map { step in
-                let minutes = String(format: "%02d", step.minutes)
-                let seconds = String(format: "%02d", step.seconds)
-                return RoutineStepData(name: step.type ?? "작업", duration: minutes + seconds)
+                let storage = storageString(from: Int(step.durationSeconds))
+                return RoutineStepData(name: step.title ?? "작업", duration: storage)
             }
         } else if steps.isEmpty {
             addStep()
@@ -410,7 +422,7 @@ struct DragRelocateDelegate: DropDelegate {
 struct RoutineStepData: Identifiable, Equatable {
     let id = UUID()
     var name: String
-    var duration: String // Just digits, e.g. "2500" for 25:00 (total minutes + seconds)
+    var duration: String // Digits, "MMSS" where MM is total minutes and SS is seconds
 }
 
 struct RoutineTemplate: Identifiable {

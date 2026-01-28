@@ -93,13 +93,7 @@ struct CDRoutineCard: View {
         let steps = routine.steps as? Set<RoutineStep> ?? []
         let sortedSteps = steps.sorted { ($0.order, $0.stepId?.uuidString ?? "") < ($1.order, $1.stepId?.uuidString ?? "") }
         return sortedSteps.map { step in
-            if step.minutes == 0 && step.seconds > 0 {
-                return "\(step.seconds)s"
-            } else if step.seconds > 0 {
-                return "\(step.minutes)m \(step.seconds)s"
-            } else {
-                return "\(step.minutes)m"
-            }
+            formatCompactDuration(Int(step.durationSeconds))
         }.joined(separator: " · ")
     }
     
@@ -201,6 +195,29 @@ struct CDRoutineCard: View {
         } catch {
             print("Failed to delete routine: \(error)")
         }
+    }
+
+    private func formatCompactDuration(_ seconds: Int) -> String {
+        let total = max(seconds, 0)
+        let hours = total / 3600
+        let minutes = (total % 3600) / 60
+        let secs = total % 60
+        if hours > 0 {
+            if minutes > 0 && secs > 0 {
+                return "\(hours)h \(minutes)m \(secs)s"
+            }
+            if minutes > 0 {
+                return "\(hours)h \(minutes)m"
+            }
+            return "\(hours)h \(secs)s"
+        }
+        if minutes > 0 && secs > 0 {
+            return "\(minutes)m \(secs)s"
+        }
+        if minutes > 0 {
+            return "\(minutes)m"
+        }
+        return "\(secs)s"
     }
 }
 

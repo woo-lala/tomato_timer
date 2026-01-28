@@ -19,18 +19,11 @@ struct TimerRunningView: View {
     // Timer State
     @State private var currentStepIndex: Int = 0
     @State private var remainingSeconds: Int = 0
-    @State private var totalSeconds: Int = 0
     @State private var isScreenOn: Bool
-    @State private var isPaused: Bool = false
-    @State private var isRunning: Bool = true
     @State private var showFinishAlert: Bool = false
-    @State private var showStepAlert: Bool = false
-    @State private var isAwaitingStepConfirmation: Bool = false
-    @State private var notificationRepeatTimer: Timer?
-    @State private var backgroundTimestamp: Date?
-    @State private var backgroundRemainingSeconds: Int = 0
-    @State private var backgroundStepIndex: Int = 0
-    @State private var lastTickDate: Date?
+    @State private var sessionState: SessionState?
+    @State private var lastSyncedStepIndex: Int?
+    @State private var hasSyncedOnce: Bool = false
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -45,35 +38,37 @@ struct TimerRunningView: View {
         return steps.sorted { ($0.order, $0.stepId?.uuidString ?? "") < ($1.order, $1.stepId?.uuidString ?? "") }
     }
     
-    var currentStep: RoutineStep? {
-        guard currentStepIndex < sortedSteps.count else { return nil }
-        return sortedSteps[currentStepIndex]
-    }
-    
-    var nextStep: RoutineStep? {
-        guard currentStepIndex + 1 < sortedSteps.count else { return nil }
-        return sortedSteps[currentStepIndex + 1]
+    var timeline: [StepTimelineItem] {
+        SequentialTimerEngine.buildTimeline(from: sortedSteps)
     }
     
     var timeString: String {
-        let minutes = remainingSeconds / 60
-        let seconds = remainingSeconds % 60
-        return String(format: "%02d:%02d", minutes, seconds)
+        formatTime(remainingSeconds)
     }
     
     var currentStepName: String {
-        currentStep?.type ?? "작업"
+        guard currentStepIndex < timeline.count else { return "작업" }
+        return timeline[currentStepIndex].name
     }
     
     var nextStepInfo: String {
-        if let next = nextStep {
-            if next.seconds > 0 {
-                return "다음: \(next.type ?? "작업") (\(next.minutes)분 \(next.seconds)초)"
-            } else {
-                return "다음: \(next.type ?? "작업") (\(next.minutes)분)"
-            }
+        let nextIndex = currentStepIndex + 1
+        guard nextIndex < timeline.count else { return "마지막 단계" }
+        let next = timeline[nextIndex]
+        let minutes = next.durationSeconds / 60
+        let seconds = next.durationSeconds % 60
+        if minutes > 0 && seconds > 0 {
+            return "다음: \(next.name) (\(minutes)분 \(seconds)초)"
         }
-        return "마지막 단계"
+        if minutes > 0 {
+            return "다음: \(next.name) (\(minutes)분)"
+        }
+        return "다음: \(next.name) (\(seconds)초)"
+    }
+
+    var displayStepIndex: Int {
+        guard !sortedSteps.isEmpty else { return 0 }
+        return min(currentStepIndex + 1, sortedSteps.count)
     }
     
     var body: some View {
@@ -87,7 +82,7 @@ struct TimerRunningView: View {
                     // Central Card
                     VStack(spacing: 20) {
                         // Step Badge
-                        Text("\(currentStepIndex + 1)/\(sortedSteps.count)")
+                        Text("\(displayStepIndex)/\(sortedSteps.count)")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(AppColor.primary)
                             .padding(.vertical, 6)
@@ -152,6 +147,7 @@ struct TimerRunningView: View {
                         // Stop Button
                         VStack(spacing: 8) {
                             Button(action: {
+                                stopSession()
                                 dismiss()
                             }) {
                                 Circle()
@@ -171,20 +167,20 @@ struct TimerRunningView: View {
                         // Pause/Play Button
                         VStack(spacing: 8) {
                             Button(action: {
-                                isPaused.toggle()
+                                handlePrimaryAction()
                             }) {
                                 Circle()
                                     .fill(AppColor.primary)
                                     .frame(width: 72, height: 72)
                                     .shadow(color: AppColor.primary.opacity(0.3), radius: 8, x: 0, y: 4)
                                     .overlay(
-                                        Image(systemName: isPaused ? "play.fill" : "pause.fill")
+                                        Image(systemName: primaryActionIconName)
                                             .font(.system(size: 28, weight: .bold))
                                             .foregroundColor(.white)
-                                            .offset(x: isPaused ? 2 : 0)
+                                            .offset(x: primaryActionIconName == "play.fill" ? 2 : 0)
                                     )
                             }
-                            Text(isPaused ? "재개" : "일시정지")
+                            Text(primaryActionLabel)
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(.gray)
                         }
@@ -233,22 +229,17 @@ struct TimerRunningView: View {
             } message: {
                 Text("모든 단계를 완료했습니다!")
             }
-            .alert("단계 완료", isPresented: $showStepAlert) {
-                Button(currentStepIndex >= sortedSteps.count - 1 ? "확인" : "다음 단계", action: {
-                    handleStepAlertConfirm()
-                })
-            } message: {
-                if currentStepIndex >= sortedSteps.count - 1 {
-                    Text("모든 단계를 완료했습니다!")
-                } else if let next = nextStep {
-                    Text("다음: \(next.type ?? "작업")로 넘어갈까요?")
-                } else {
-                    Text("다음 단계로 넘어갈까요?")
-                }
-            }
             .sheet(isPresented: $showAlarmSettings) {
                 NotificationModeSheet(routine: routine, onStart: { selectedRoutine, config in
                     configuration = config
+                    if var state = sessionState {
+                        applyConfiguration(config, to: &state)
+                        sessionState = state
+                        SessionStore.save(state)
+                        if state.isPaused == false {
+                            scheduleNotifications(for: state)
+                        }
+                    }
                     showAlarmSettings = false
                 })
                 .presentationDetents([.medium])
@@ -256,16 +247,8 @@ struct TimerRunningView: View {
             }
         }
         .onReceive(timer) { _ in
-            let now = Date()
-            guard isRunning && !isPaused else {
-                lastTickDate = now
-                return
-            }
-
-            let elapsed = max(1, Int(now.timeIntervalSince(lastTickDate ?? now)))
-            lastTickDate = now
-            if elapsed <= 0 { return }
-            applyElapsedTime(elapsed, startingFrom: currentStepIndex, startingRemaining: remainingSeconds)
+            guard sessionState?.isPaused == false else { return }
+            syncDisplay(now: Date())
         }
         .onAppear {
             if let initial = initialConfiguration {
@@ -273,23 +256,20 @@ struct TimerRunningView: View {
             } else {
                 loadLastNotificationConfiguration()
             }
-            initializeTimer()
-            lastTickDate = Date()
             requestNotificationAuthorization()
+            loadOrStartSession()
+            syncDisplay(now: Date())
             // 화면 켜짐 유지 설정
             UIApplication.shared.isIdleTimerDisabled = isScreenOn
         }
         .onDisappear {
             // 화면 켜짐 유지 해제
             UIApplication.shared.isIdleTimerDisabled = false
-            stopNotificationLoop()
-            clearStepCompletionNotifications()
         }
         .onChange(of: scenePhase) { _, newValue in
-            handleScenePhaseChange(newValue)
-        }
-        .onChange(of: isPaused) { _, _ in
-            lastTickDate = Date()
+            if newValue == .active {
+                syncDisplay(now: Date())
+            }
         }
         .onChange(of: isScreenOn) { oldValue, newValue in
             // 토글이 변경될 때 즉시 적용
@@ -297,15 +277,6 @@ struct TimerRunningView: View {
             routine.keepScreenOn = newValue
             routine.updatedAt = Date()
             try? managedObjectContext.save()
-        }
-    }
-    
-    private func initializeTimer() {
-        guard !sortedSteps.isEmpty else { return }
-        currentStepIndex = 0
-        if let step = currentStep {
-            remainingSeconds = Int(step.minutes) * 60 + Int(step.seconds)
-            totalSeconds = remainingSeconds
         }
     }
     
@@ -327,53 +298,139 @@ struct TimerRunningView: View {
         }
     }
     
-    private func skipToNextStep() {
-        // 마지막 단계에서 건너뛰기를 누른 경우
-        if currentStepIndex >= sortedSteps.count - 1 {
-            playNotification()
-            showFinishAlert = true
-            return
-        }
-        
-        playNotification()
-        moveToNextStep()
-    }
-    
-    private func handleStepCompletion() {
-        isAwaitingStepConfirmation = true
-        isPaused = true
-        showStepAlert = true
-        startNotificationLoop()
-    }
-    
-    private func handleStepAlertConfirm() {
-        stopNotificationLoop()
-        showStepAlert = false
-        isAwaitingStepConfirmation = false
-        
-        if currentStepIndex >= sortedSteps.count - 1 {
-            isRunning = false
-            dismiss()
-            return
-        }
-        
-        moveToNextStep()
-        isPaused = false
-    }
-    
-    private func moveToNextStep() {
-        if currentStepIndex < sortedSteps.count - 1 {
-            currentStepIndex += 1
-            if let step = currentStep {
-                remainingSeconds = Int(step.minutes) * 60 + Int(step.seconds)
-                totalSeconds = remainingSeconds
+    private func loadOrStartSession() {
+        guard !timeline.isEmpty else { return }
+        if let routineId = routine.routineId,
+           let stored = SessionStore.load(),
+           stored.routineId == routineId {
+            sessionState = stored
+            configuration = configurationFromSession(stored, fallback: configuration)
+            if stored.isPaused == false {
+                scheduleNotifications(for: stored)
             }
         } else {
-            // 마지막 단계에서 시간이 끝났을 때 자동으로 종료
-            isRunning = false
-            playNotification()
-            showFinishAlert = true
+            startSession()
         }
+    }
+
+    private func startSession() {
+        guard !timeline.isEmpty else { return }
+        let routineId = routine.routineId ?? UUID()
+        let now = Date()
+        hasSyncedOnce = false
+        lastSyncedStepIndex = nil
+        let newState = SessionState(
+            sessionId: UUID(),
+            routineId: routineId,
+            startAt: now,
+            isPaused: false,
+            pausedAt: nil,
+            accumulatedPausedSeconds: 0,
+            currentStepIndex: 0,
+            notificationMode: configuration.mode == .vibration ? .vibration : .sound,
+            notificationPatternId: notificationPatternId(from: configuration),
+            scheduledNotificationIds: []
+        )
+        sessionState = newState
+        SessionStore.save(newState)
+        scheduleNotifications(for: newState)
+    }
+
+    private func pauseSession() {
+        guard var state = sessionState, state.isPaused == false else { return }
+        state.isPaused = true
+        state.pausedAt = Date()
+        sessionState = state
+        SessionStore.save(state)
+        cancelPendingNotifications(for: state.sessionId, stepCount: timeline.count)
+        syncDisplay(now: Date())
+    }
+
+    private func resumeSession() {
+        guard var state = sessionState, state.isPaused else { return }
+        let now = Date()
+        if let pausedAt = state.pausedAt {
+            state.accumulatedPausedSeconds += max(Int(now.timeIntervalSince(pausedAt)), 0)
+        }
+        state.isPaused = false
+        state.pausedAt = nil
+        sessionState = state
+        SessionStore.save(state)
+        scheduleNotifications(for: state)
+    }
+
+    private func stopSession() {
+        guard let state = sessionState else { return }
+        cancelPendingNotifications(for: state.sessionId, stepCount: timeline.count)
+        sessionState = nil
+        hasSyncedOnce = false
+        lastSyncedStepIndex = nil
+        SessionStore.clear()
+    }
+
+    private func finishSession() {
+        guard let state = sessionState else { return }
+        hasSyncedOnce = false
+        lastSyncedStepIndex = nil
+        cancelPendingNotifications(for: state.sessionId, stepCount: timeline.count)
+        SessionStore.clear()
+        showFinishAlert = true
+    }
+
+    private func handlePrimaryAction() {
+        if sessionState == nil {
+            startSession()
+            syncDisplay(now: Date())
+            return
+        }
+        switch sessionState?.isPaused {
+        case .some(false):
+            pauseSession()
+        case .some(true):
+            resumeSession()
+        default:
+            break
+        }
+    }
+
+    private var primaryActionLabel: String {
+        switch sessionState?.isPaused {
+        case .some(false):
+            return "일시정지"
+        case .some(true):
+            return "재개"
+        default:
+            return "시작"
+        }
+    }
+
+    private var primaryActionIconName: String {
+        switch sessionState?.isPaused {
+        case .some(false):
+            return "pause.fill"
+        default:
+            return "play.fill"
+        }
+    }
+
+    private func skipToNextStep() {
+        guard var state = sessionState else { return }
+        guard !timeline.isEmpty else { return }
+        if state.currentStepIndex >= timeline.count - 1 {
+            finishSession()
+            return
+        }
+        let nextIndex = min(state.currentStepIndex + 1, timeline.count - 1)
+        let now = Date()
+        state.currentStepIndex = nextIndex
+        state.startAt = now.addingTimeInterval(TimeInterval(-timeline[nextIndex].startOffset))
+        state.isPaused = false
+        state.pausedAt = nil
+        state.accumulatedPausedSeconds = 0
+        sessionState = state
+        SessionStore.save(state)
+        scheduleNotifications(for: state)
+        syncDisplay(now: Date())
     }
     
     private func playNotification() {
@@ -387,90 +444,167 @@ struct TimerRunningView: View {
             HapticManager.shared.playVibration(configuration.vibration)
         }
     }
-    
-    private func handleScenePhaseChange(_ newPhase: ScenePhase) {
-        switch newPhase {
-        case .background, .inactive:
-            guard isRunning && !isPaused && !isAwaitingStepConfirmation else { return }
-            backgroundTimestamp = Date()
-            backgroundRemainingSeconds = remainingSeconds
-            backgroundStepIndex = currentStepIndex
-            scheduleStepCompletionNotification(after: remainingSeconds)
-        case .active:
-            clearStepCompletionNotifications()
-            guard let backgroundTimestamp else { return }
-            let elapsed = Int(Date().timeIntervalSince(backgroundTimestamp))
-            self.backgroundTimestamp = nil
-            if elapsed <= 0 { return }
-            if elapsed >= backgroundRemainingSeconds {
-                currentStepIndex = backgroundStepIndex
-                remainingSeconds = 0
-                totalSeconds = backgroundRemainingSeconds
-                isPaused = true
-                isAwaitingStepConfirmation = true
-                showStepAlert = true
-            } else {
-                applyElapsedTime(elapsed, startingFrom: backgroundStepIndex, startingRemaining: backgroundRemainingSeconds)
-            }
-            lastTickDate = Date()
-        @unknown default:
-            break
-        }
-    }
-    
-    private func applyElapsedTime(_ elapsed: Int, startingFrom stepIndex: Int, startingRemaining: Int) {
-        var remainingElapsed = elapsed
-        var index = stepIndex
-        var remaining = startingRemaining
-        
-        while remainingElapsed >= remaining && index < sortedSteps.count {
-            remainingElapsed -= remaining
-            index += 1
-            if index >= sortedSteps.count {
-                isRunning = false
-                showFinishAlert = true
-                return
-            }
-            let next = sortedSteps[index]
-            remaining = Int(next.minutes) * 60 + Int(next.seconds)
-        }
-        
-        currentStepIndex = index
-        remainingSeconds = max(remaining - remainingElapsed, 0)
-        totalSeconds = remaining
-    }
-    
-    private func startNotificationLoop() {
-        playNotification()
-        notificationRepeatTimer?.invalidate()
-        notificationRepeatTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
-            playNotification()
-        }
-    }
-    
-    private func stopNotificationLoop() {
-        notificationRepeatTimer?.invalidate()
-        notificationRepeatTimer = nil
-    }
 
     private func requestNotificationAuthorization() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
     }
 
-    private func scheduleStepCompletionNotification(after seconds: Int) {
-        guard seconds > 0 else { return }
-        clearStepCompletionNotifications()
-        let content = UNMutableNotificationContent()
-        content.title = "단계 완료"
-        content.body = "\(currentStepName) 완료. 다음 단계로 넘어가세요."
-        content.sound = .default
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(seconds), repeats: false)
-        let request = UNNotificationRequest(identifier: "routineStepComplete", content: content, trigger: trigger)
-        UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
+    private func syncDisplay(now: Date) {
+        guard var state = sessionState else { return }
+        guard !timeline.isEmpty else { return }
+        let stepIndex = min(max(state.currentStepIndex, 0), timeline.count - 1)
+        let elapsed = state.activeElapsedSeconds(now: now)
+        let endOffset = timeline[stepIndex].endOffset
+        if elapsed >= endOffset {
+            let over = elapsed - endOffset
+            if over > 0 {
+                state.accumulatedPausedSeconds += over
+            }
+            state.isPaused = true
+            state.pausedAt = now
+            sessionState = state
+            SessionStore.save(state)
+            cancelPendingNotifications(for: state.sessionId, stepCount: timeline.count)
+            currentStepIndex = stepIndex
+            remainingSeconds = 0
+            return
+        }
+        currentStepIndex = stepIndex
+        remainingSeconds = max(endOffset - elapsed, 0)
+        if !hasSyncedOnce {
+            hasSyncedOnce = true
+            lastSyncedStepIndex = currentStepIndex
+            return
+        }
+        if lastSyncedStepIndex != currentStepIndex && state.isPaused == false {
+            lastSyncedStepIndex = currentStepIndex
+            playNotification()
+        }
     }
 
-    private func clearStepCompletionNotifications() {
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["routineStepComplete"])
+    private func scheduleNotifications(for state: SessionState) {
+        guard !timeline.isEmpty else { return }
+        let elapsed = state.activeElapsedSeconds(now: Date())
+        var requests: [UNNotificationRequest] = []
+        var identifiers: [String] = []
+        let stepIndex = min(max(state.currentStepIndex, 0), timeline.count - 1)
+        let item = timeline[stepIndex]
+        let remaining = item.endOffset - elapsed
+        if remaining > 0 {
+            let content = UNMutableNotificationContent()
+            let identifier: String
+            if item.index == timeline.count - 1 {
+                content.title = "루틴 완료"
+                content.body = "\(routine.name ?? "루틴")이(가) 완료되었습니다."
+                identifier = completionNotificationIdentifier(sessionId: state.sessionId)
+            } else {
+                let nextName = timeline[item.index + 1].name
+                content.title = "단계 완료"
+                content.body = "\(item.name) 완료. 다음: \(nextName)"
+                identifier = notificationIdentifier(sessionId: state.sessionId, stepIndex: item.index)
+            }
+            content.sound = notificationSound(for: configuration)
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(remaining), repeats: false)
+            requests.append(UNNotificationRequest(identifier: identifier, content: content, trigger: trigger))
+            identifiers.append(identifier)
+        }
+
+        cancelPendingNotifications(for: state.sessionId, stepCount: timeline.count)
+        let center = UNUserNotificationCenter.current()
+        for request in requests {
+            center.add(request, withCompletionHandler: nil)
+        }
+        if var updated = sessionState {
+            updated.scheduledNotificationIds = identifiers
+            sessionState = updated
+            SessionStore.save(updated)
+        }
+    }
+
+    private func cancelPendingNotifications(for sessionId: UUID, stepCount: Int) {
+        guard stepCount > 0 else { return }
+        let identifiers = (0..<stepCount).map { notificationIdentifier(sessionId: sessionId, stepIndex: $0) }
+            + [completionNotificationIdentifier(sessionId: sessionId)]
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: identifiers)
+    }
+
+    private func notificationSound(for configuration: NotificationConfiguration) -> UNNotificationSound? {
+        switch configuration.mode {
+        case .sound, .soundAndVibration:
+            return .default
+        case .vibration:
+            return nil
+        }
+    }
+
+    private func notificationPatternId(from configuration: NotificationConfiguration) -> String {
+        switch configuration.mode {
+        case .sound, .soundAndVibration:
+            switch configuration.sound {
+            case .default:
+                return "basic"
+            case .short:
+                return "short"
+            case .soft:
+                return "soft"
+            }
+        case .vibration:
+            switch configuration.vibration {
+            case .default:
+                return "basic"
+            case .short:
+                return "short"
+            case .double:
+                return "double"
+            case .heavy:
+                return "heavy"
+            }
+        }
+    }
+
+    private func applyConfiguration(_ configuration: NotificationConfiguration, to state: inout SessionState) {
+        state.notificationMode = configuration.mode == .vibration ? .vibration : .sound
+        state.notificationPatternId = notificationPatternId(from: configuration)
+    }
+
+    private func configurationFromSession(_ state: SessionState, fallback: NotificationConfiguration) -> NotificationConfiguration {
+        switch state.notificationMode {
+        case .vibration:
+            let vibration: VibrationPattern
+            switch state.notificationPatternId {
+            case "short":
+                vibration = .short
+            case "double":
+                vibration = .double
+            case "heavy":
+                vibration = .heavy
+            default:
+                vibration = .default
+            }
+            return NotificationConfiguration(mode: .vibration, sound: fallback.sound, vibration: vibration)
+        case .sound, .soundAndVibration:
+            let sound: NotificationSound
+            switch state.notificationPatternId {
+            case "short":
+                sound = .short
+            case "soft":
+                sound = .soft
+            default:
+                sound = .default
+            }
+            return NotificationConfiguration(mode: .sound, sound: sound, vibration: fallback.vibration)
+        }
+    }
+
+    private func formatTime(_ seconds: Int) -> String {
+        let total = max(seconds, 0)
+        let hours = total / 3600
+        let minutes = (total % 3600) / 60
+        let secs = total % 60
+        if hours > 0 {
+            return String(format: "%02d:%02d:%02d", hours, minutes, secs)
+        }
+        return String(format: "%02d:%02d", minutes, secs)
     }
     
     var configDisplayText: String {

@@ -93,14 +93,13 @@ class CoreDataManager {
     // MARK: - RoutineStep CRUD
 
     @discardableResult
-    func createRoutineStep(routine: Routine, order: Int16, type: String, minutes: Int16, seconds: Int16 = 0) -> RoutineStep {
+    func createRoutineStep(routine: Routine, order: Int16, title: String, durationSeconds: Int64) -> RoutineStep {
         let step = RoutineStep(context: context)
         step.stepId = UUID()
         step.routineId = routine.routineId
         step.order = order
-        step.type = type
-        step.minutes = minutes
-        step.seconds = seconds
+        step.title = title
+        step.durationSeconds = durationSeconds
         step.routine = routine
         routine.addToSteps(step)
         
@@ -121,10 +120,10 @@ class CoreDataManager {
         }
     }
 
-    func updateRoutineStep(_ step: RoutineStep, order: Int16? = nil, type: String? = nil, minutes: Int16? = nil) {
+    func updateRoutineStep(_ step: RoutineStep, order: Int16? = nil, title: String? = nil, durationSeconds: Int64? = nil) {
         if let order = order { step.order = order }
-        if let type = type { step.type = type }
-        if let minutes = minutes { step.minutes = minutes }
+        if let title = title { step.title = title }
+        if let durationSeconds = durationSeconds { step.durationSeconds = durationSeconds }
         
         saveContext()
     }

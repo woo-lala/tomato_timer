@@ -97,11 +97,11 @@ struct RoutineDetailView: View {
                                                 }
                                                 
                                                 VStack(alignment: .leading, spacing: 4) {
-                                                    Text(step.type ?? "작업")
+                                                    Text(step.title ?? "작업")
                                                         .font(.system(size: 15, weight: .semibold))
                                                         .foregroundColor(AppColor.textPrimary)
                                                     
-                                                    Text("\(step.minutes)분")
+                                                    Text(formatDuration(Int(step.durationSeconds)))
                                                         .font(.system(size: 13))
                                                         .foregroundColor(AppColor.textSecondary)
                                                 }
@@ -109,7 +109,7 @@ struct RoutineDetailView: View {
                                                 Spacer()
                                                 
                                                 VStack(alignment: .trailing, spacing: 0) {
-                                                    Text("\(String(format: "%02d", step.minutes)):00")
+                                                    Text(formatDigitalDuration(Int(step.durationSeconds)))
                                                         .font(.system(size: 16, weight: .semibold, design: .monospaced))
                                                         .foregroundColor(AppColor.primary)
                                                 }
@@ -179,6 +179,31 @@ struct RoutineDetailView: View {
         managedObjectContext.delete(routine)
         try? managedObjectContext.save()
         dismiss()
+    }
+
+    private func formatDuration(_ seconds: Int) -> String {
+        let total = max(seconds, 0)
+        let hours = total / 3600
+        let minutes = (total % 3600) / 60
+        let secs = total % 60
+        if hours > 0 {
+            return "\(hours)시간 \(minutes)분 \(secs)초"
+        }
+        if minutes > 0 {
+            return "\(minutes)분 \(secs)초"
+        }
+        return "\(secs)초"
+    }
+
+    private func formatDigitalDuration(_ seconds: Int) -> String {
+        let total = max(seconds, 0)
+        let hours = total / 3600
+        let minutes = (total % 3600) / 60
+        let secs = total % 60
+        if hours > 0 {
+            return String(format: "%02d:%02d:%02d", hours, minutes, secs)
+        }
+        return String(format: "%02d:%02d", minutes, secs)
     }
 }
 
