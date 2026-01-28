@@ -29,7 +29,7 @@ struct TimerRunningView: View {
     @State private var hasShownManualAlertForStep: Int?
     @AppStorage("seqtimer.didOpenFromNotification") private var didOpenFromNotification: Bool = false
     @State private var manualAlertNotificationTimers: [DispatchWorkItem] = []
-    private let backgroundRepeatCount = 5
+    private let backgroundRepeatCount = 1
     private let backgroundRepeatInterval: TimeInterval = 2.2
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -353,6 +353,10 @@ struct TimerRunningView: View {
         let now = Date()
         hasSyncedOnce = false
         lastSyncedStepIndex = nil
+        if routine.managedObjectContext != nil {
+            CoreDataManager.shared.createSession(for: routine, startedAt: now)
+            NotificationCenter.default.post(name: .sessionStarted, object: routine.routineId)
+        }
         let newState = SessionState(
             sessionId: UUID(),
             routineId: routineId,
@@ -639,6 +643,7 @@ struct TimerRunningView: View {
                 content.title = "단계 완료"
                 content.body = "\(timeline[stepIndex].name) 완료. 다음: \(nextName)"
             }
+            content.threadIdentifier = "seqtimer.repeat.\(state.sessionId.uuidString)"
             content.sound = notificationSound(for: configuration)
             let identifier = backgroundRepeatIdentifier(sessionId: state.sessionId, stepIndex: stepIndex, repeatIndex: offsetIndex)
             let trigger = UNTimeIntervalNotificationTrigger(timeInterval: fireAfter, repeats: false)
@@ -671,6 +676,9 @@ struct TimerRunningView: View {
     private func notificationSound(for configuration: NotificationConfiguration) -> UNNotificationSound? {
         switch configuration.mode {
         case .sound, .soundAndVibration:
+            if let resource = configuration.sound.audioResourceName {
+                return UNNotificationSound(named: UNNotificationSoundName(rawValue: resource))
+            }
             return .default
         case .vibration:
             return nil
@@ -751,27 +759,32 @@ struct TimerRunningView: View {
         showManualNextAlert = true
     }
 
-    private var manualAlertTitle: String {
-        guard !timeline.isEmpty else { return "단계 완료" }
-        let stepIndex = min(max(currentStepIndex, 0), timeline.count - 1)
-        return "\(timeline[stepIndex].name) 완료"
-    }
-
-    private var manualAlertMessage: String {
-        let nextIndex = currentStepIndex + 1
-        guard nextIndex < timeline.count else { return "마지막 단계입니다." }
-        return "다음 단계인 \(timeline[nextIndex].name)를 시작할까요?"
-    }
-
-    private var manualAlertPrimaryLabel: String {
-        let nextIndex = currentStepIndex + 1
-        guard nextIndex < timeline.count else { return "확인" }
-        return "\(timeline[nextIndex].name) 시작"
-    }
-
     private var manualAlertShowsLaterButton: Bool {
         let nextIndex = currentStepIndex + 1
         return nextIndex < timeline.count
+    }
+
+    private var manualAlertTitle: String {
+        "단계 완료"
+    }
+
+    private var manualAlertMessage: String {
+        if isLastStep {
+            return "모든 단계를 완료했어요."
+        }
+        return "다음 단계로 넘어갈까요?"
+    }
+
+    private var manualAlertPrimaryLabel: String {
+        if isLastStep {
+            return "확인"
+        }
+        return "시작하기"
+    }
+
+    private var isLastStep: Bool {
+        let nextIndex = currentStepIndex + 1
+        return nextIndex >= timeline.count
     }
 
     private func startNextStepFromManualAlert() {
@@ -862,6 +875,10 @@ struct TimerRunningView: View {
             return "소리+진동"
         }
     }
+}
+
+extension Notification.Name {
+    static let sessionStarted = Notification.Name("seqtimer.sessionStarted")
 }
 
 #Preview {

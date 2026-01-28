@@ -14,6 +14,9 @@ struct RoutineCreateView: View {
     @State private var savedTemplates: [Routine] = []
     @State private var showValidationAlert: Bool = false
     @State private var validationMessage: String = ""
+    @State private var initialRoutineName: String = ""
+    @State private var initialIsTemplate: Bool = false
+    @State private var initialSteps: [RoutineStepData] = []
     
     @State private var draggingItem: RoutineStepData?
     
@@ -33,6 +36,25 @@ struct RoutineCreateView: View {
     
     var isEditingMode: Bool {
         routine != nil
+    }
+
+    var isDirty: Bool {
+        guard isEditingMode else { return true }
+        return routineName != initialRoutineName
+            || isTemplate != initialIsTemplate
+            || steps != initialSteps
+    }
+
+    var isValid: Bool {
+        guard !routineName.isEmpty else { return false }
+        guard !steps.isEmpty else { return false }
+        guard !steps.contains(where: { $0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) else { return false }
+        guard !steps.contains(where: { isZeroDuration($0.duration) }) else { return false }
+        return true
+    }
+
+    var canSave: Bool {
+        isValid && isDirty
     }
     
     var body: some View {
@@ -201,9 +223,10 @@ struct RoutineCreateView: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
-                            .background(AppColor.primary)
+                            .background(canSave ? AppColor.primary : AppColor.primary.opacity(0.35))
                             .cornerRadius(AppRadius.standard)
                     }
+                    .disabled(!canSave)
                     .padding(.horizontal, AppSpacing.mediumPlus)
                     .padding(.bottom, 10)
                 }
@@ -255,6 +278,7 @@ struct RoutineCreateView: View {
     }
     
     private func saveRoutine() {
+        guard canSave else { return }
         guard !routineName.isEmpty else {
             showValidation(message: "루틴 이름을 입력해주세요.")
             return
@@ -383,6 +407,13 @@ struct RoutineCreateView: View {
         } else if steps.isEmpty {
             addStep()
         }
+        captureInitialState()
+    }
+
+    private func captureInitialState() {
+        initialRoutineName = routineName
+        initialIsTemplate = isTemplate
+        initialSteps = steps
     }
 }
 

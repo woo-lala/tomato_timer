@@ -63,6 +63,9 @@ struct RoutineListView: View {
             .preferredColorScheme(.light)
             .navigationTitle("내 루틴")
             .navigationBarTitleDisplayMode(.inline)
+            .onReceive(NotificationCenter.default.publisher(for: .sessionStarted)) { _ in
+                refreshTrigger = UUID()
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     NavigationLink(destination: SettingsView()) {
@@ -92,9 +95,34 @@ struct CDRoutineCard: View {
     var timeStepsDisplay: String {
         let steps = routine.steps as? Set<RoutineStep> ?? []
         let sortedSteps = steps.sorted { ($0.order, $0.stepId?.uuidString ?? "") < ($1.order, $1.stepId?.uuidString ?? "") }
-        return sortedSteps.map { step in
+        let maxShown = 3
+        let shownSteps = sortedSteps.prefix(maxShown).map { step in
             formatCompactDuration(Int(step.durationSeconds))
-        }.joined(separator: " · ")
+        }
+        let remainingCount = max(sortedSteps.count - maxShown, 0)
+        if remainingCount > 0 {
+            let prefix = shownSteps.joined(separator: " · ")
+            return "\(prefix)  외 \(remainingCount)개"
+        }
+        return shownSteps.joined(separator: " · ")
+    }
+
+    var lastRunDisplay: String {
+        if let date = lastRunDate {
+            return "마지막 실행: \(formatDate(date))"
+        }
+        if let createdAt = routine.createdAt {
+            return "생성일: \(formatDate(createdAt))"
+        }
+        if let updatedAt = routine.updatedAt {
+            return "마지막 수정: \(formatDate(updatedAt))"
+        }
+        return "생성일: 없음"
+    }
+
+    var lastRunDate: Date? {
+        let sessions = routine.sessions as? Set<Session> ?? []
+        return sessions.compactMap { $0.startedAt }.max()
     }
     
     var body: some View {
@@ -113,15 +141,13 @@ struct CDRoutineCard: View {
                     }
                     
                     // Created Date Badge
-                    if let createdAt = routine.createdAt {
-                        Text("생성일: \(createdAt.formatted(date: .abbreviated, time: .omitted))")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(Color.gray)
-                            .padding(.vertical, 4)
-                            .padding(.horizontal, 8)
-                            .background(Color(hex: "F2F2F7"))
-                            .cornerRadius(8)
-                    }
+                    Text(lastRunDisplay)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(Color.gray)
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)
+                        .background(Color(hex: "F2F2F7"))
+                        .cornerRadius(8)
                 }
                 
                 Spacer()
@@ -218,6 +244,12 @@ struct CDRoutineCard: View {
             return "\(minutes)m"
         }
         return "\(secs)s"
+    }
+
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
     }
 }
 
