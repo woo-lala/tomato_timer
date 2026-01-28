@@ -7,13 +7,13 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		2F07862A2F1B614100D65B3C /* Tomato Timer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Tomato Timer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		2F07862A2F1B614100D65B3C /* Sequential Timer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Sequential Timer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		2F07862C2F1B614100D65B3C /* Tomato Timer */ = {
+		2F07862C2F1B614100D65B3C /* Sequential Timer */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Tomato Timer";
+			path = "Sequential Timer";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -32,7 +32,7 @@
 		2F0786212F1B614100D65B3C = {
 			isa = PBXGroup;
 			children = (
-				2F07862C2F1B614100D65B3C /* Tomato Timer */,
+				2F07862C2F1B614100D65B3C /* Sequential Timer */,
 				2F07862B2F1B614100D65B3C /* Products */,
 			);
 			sourceTree = "<group>";
@@ -40,7 +40,7 @@
 		2F07862B2F1B614100D65B3C /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				2F07862A2F1B614100D65B3C /* Tomato Timer.app */,
+				2F07862A2F1B614100D65B3C /* Sequential Timer.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -48,9 +48,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		2F0786292F1B614100D65B3C /* Tomato Timer */ = {
+		2F0786292F1B614100D65B3C /* Sequential Timer */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 2F0786352F1B614500D65B3C /* Build configuration list for PBXNativeTarget "Tomato Timer" */;
+			buildConfigurationList = 2F0786352F1B614500D65B3C /* Build configuration list for PBXNativeTarget "Sequential Timer" */;
 			buildPhases = (
 				2F0786262F1B614100D65B3C /* Sources */,
 				2F0786272F1B614100D65B3C /* Frameworks */,
@@ -61,13 +61,13 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				2F07862C2F1B614100D65B3C /* Tomato Timer */,
+				2F07862C2F1B614100D65B3C /* Sequential Timer */,
 			);
-			name = "Tomato Timer";
+			name = "Sequential Timer";
 			packageProductDependencies = (
 			);
-			productName = "Tomato Timer";
-			productReference = 2F07862A2F1B614100D65B3C /* Tomato Timer.app */;
+			productName = "Sequential Timer";
+			productReference = 2F07862A2F1B614100D65B3C /* Sequential Timer.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -85,7 +85,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 2F0786252F1B614100D65B3C /* Build configuration list for PBXProject "Tomato Timer" */;
+			buildConfigurationList = 2F0786252F1B614100D65B3C /* Build configuration list for PBXProject "Sequential Timer" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -99,7 +99,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				2F0786292F1B614100D65B3C /* Tomato Timer */,
+				2F0786292F1B614100D65B3C /* Sequential Timer */,
 			);
 		};
 /* End PBXProject section */
@@ -255,6 +255,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "순차 타이머";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -288,6 +289,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "순차 타이머";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -313,7 +315,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		2F0786252F1B614100D65B3C /* Build configuration list for PBXProject "Tomato Timer" */ = {
+		2F0786252F1B614100D65B3C /* Build configuration list for PBXProject "Sequential Timer" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				2F0786332F1B614500D65B3C /* Debug */,
@@ -322,7 +324,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		2F0786352F1B614500D65B3C /* Build configuration list for PBXNativeTarget "Tomato Timer" */ = {
+		2F0786352F1B614500D65B3C /* Build configuration list for PBXNativeTarget "Sequential Timer" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				2F0786362F1B614500D65B3C /* Debug */,
