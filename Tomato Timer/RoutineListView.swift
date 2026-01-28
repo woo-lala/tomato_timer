@@ -91,6 +91,7 @@ struct CDRoutineCard: View {
     @State private var startTimer = false
     @State private var showEditView = false
     @State private var selectedConfiguration: NotificationConfiguration = .default
+    @State private var selectedTransitionMode: StepTransitionMode = .manual
     
     var timeStepsDisplay: String {
         let steps = routine.steps as? Set<RoutineStep> ?? []
@@ -194,15 +195,16 @@ struct CDRoutineCard: View {
             }
         }
         .sheet(isPresented: $showConfigSheet) {
-            NotificationModeSheet(routine: routine, onStart: { selectedRoutine, config in
+            NotificationModeSheet(routine: routine, onStart: { selectedRoutine, config, transitionMode in
                 selectedConfiguration = config
+                selectedTransitionMode = transitionMode
                 startTimer = true
             })
             .presentationDetents([.medium])
             .presentationDragIndicator(.visible)
         }
         .navigationDestination(isPresented: $startTimer) {
-            TimerRunningView(routine: routine, initialConfiguration: selectedConfiguration, forceNewSession: true)
+            TimerRunningView(routine: routine, initialConfiguration: selectedConfiguration, initialStepTransitionMode: selectedTransitionMode, forceNewSession: true)
         }
         .navigationDestination(isPresented: $showEditView) {
             RoutineCreateView(routine: routine)
@@ -297,14 +299,14 @@ struct RoutineCard: View {
                 .stroke(Color(hex: "F2F2F7"), lineWidth: 1)
         )
         .sheet(isPresented: $showConfigSheet) {
-            NotificationModeSheet(routine: routine, onStart: { selectedRoutine, config in
+            NotificationModeSheet(routine: routine, onStart: { selectedRoutine, config, transitionMode in
                 startTimer = true
             })
             .presentationDetents([.medium])
             .presentationDragIndicator(.visible)
         }
         .navigationDestination(isPresented: $startTimer) {
-            TimerRunningView(routine: routine, initialConfiguration: nil, forceNewSession: true)
+            TimerRunningView(routine: routine, initialConfiguration: nil, initialStepTransitionMode: .manual, forceNewSession: true)
         }
     }
 }

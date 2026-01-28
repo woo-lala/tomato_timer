@@ -20,7 +20,9 @@ struct NotificationModeSheet: View {
     @AppStorage("lastUsedSound") private var lastSoundRaw: String = NotificationSound.default.rawValue
     @AppStorage("lastUsedVibration") private var lastVibrationRaw: String = VibrationPattern.default.rawValue
     
-    var onStart: (Routine, NotificationConfiguration) -> Void
+    @State private var stepTransitionMode: StepTransitionMode = .manual
+
+    var onStart: (Routine, NotificationConfiguration, StepTransitionMode) -> Void
     
     var body: some View {
         VStack(spacing: 0) {
@@ -65,6 +67,26 @@ struct NotificationModeSheet: View {
             
             ScrollView {
                 VStack(spacing: 24) {
+                    // Step Transition Mode
+                    VStack(spacing: 0) {
+                        HStack {
+                            Text("전환 방식")
+                                .foregroundColor(AppColor.textPrimary)
+                            Spacer()
+                            Picker("전환 방식", selection: $stepTransitionMode) {
+                                Text("자동").tag(StepTransitionMode.auto)
+                                Text("수동").tag(StepTransitionMode.manual)
+                            }
+                            .pickerStyle(.segmented)
+                            .frame(width: 160)
+                        }
+                        .padding(.horizontal, AppSpacing.medium)
+                        .padding(.vertical, AppSpacing.smallPlus)
+                    }
+                    .background(Color.white)
+                    .cornerRadius(AppRadius.button)
+                    .padding(.horizontal, AppSpacing.mediumPlus)
+
                     // Sound Section
                     VStack(spacing: 0) {
                         ToggleRow(title: "소리", isOn: $useSound)
@@ -218,7 +240,7 @@ struct NotificationModeSheet: View {
         }
         
         let config = NotificationConfiguration(mode: mode, sound: selectedSound, vibration: selectedVibration)
-        onStart(routine, config)
+        onStart(routine, config, stepTransitionMode)
         dismiss()
     }
 }
