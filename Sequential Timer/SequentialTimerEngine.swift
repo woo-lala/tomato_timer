@@ -23,7 +23,7 @@ enum SequentialTimerEngine {
             let duration = max(0, Int(step.durationSeconds))
             let item = StepTimelineItem(
                 index: index,
-                name: step.title ?? "작업",
+                name: step.title ?? String(localized: "app.step.defaultName"),
                 durationSeconds: duration,
                 startOffset: cursor,
                 endOffset: cursor + duration

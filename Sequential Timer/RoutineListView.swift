@@ -4,6 +4,8 @@ import CoreData
 
 struct RoutineListView: View {
     @Environment(\.managedObjectContext) var managedObjectContext
+    @Environment(\.themePalette) private var theme
+    @EnvironmentObject private var languageStore: LanguageStore
     @FetchRequest(
         entity: Routine.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \Routine.createdAt, ascending: false)],
@@ -19,15 +21,15 @@ struct RoutineListView: View {
                     
                     // Section: 내 루틴
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("내 루틴")
+                        Text("routine.list.title")
                             .font(AppFont.title())
-                            .foregroundColor(.black)
+                            .foregroundColor(theme.textPrimary)
                             .padding(.horizontal, AppSpacing.mediumPlus)
                         
                         if routines.isEmpty {
-                            Text("아직 루틴이 없습니다.")
+                            Text("routine.list.empty")
                                 .font(.system(size: 16))
-                                .foregroundColor(.gray)
+                                .foregroundColor(theme.textSecondary)
                                 .padding(.vertical, 20)
                                 .frame(maxWidth: .infinity, alignment: .center)
                         } else {
@@ -46,36 +48,36 @@ struct RoutineListView: View {
                     NavigationLink(destination: RoutineCreateView(routine: nil)) {
                         HStack(spacing: 6) {
                             Image(systemName: "plus")
-                            Text("루틴 추가")
+                            Text("routine.list.add")
                         }
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.primary)
+                        .foregroundColor(theme.textPrimary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.white)
+                        .background(theme.surface)
                         .cornerRadius(12)
                     }
                     .padding(.horizontal, AppSpacing.mediumPlus)
                 }
                 .padding(.bottom, 40)
             }
-            .background(Color(UIColor.systemGroupedBackground).ignoresSafeArea(.all))
-            .preferredColorScheme(.light)
-            .navigationTitle("내 루틴")
+            .background(theme.background.ignoresSafeArea(.all))
+            .navigationTitle("routine.list.title")
             .navigationBarTitleDisplayMode(.inline)
             .onReceive(NotificationCenter.default.publisher(for: .sessionStarted)) { _ in
                 refreshTrigger = UUID()
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    NavigationLink(destination: SettingsView()) {
+                    NavigationLink(destination: SettingsView().id(languageStore.selection)) {
                         Image(systemName: "gearshape")
                             .font(.system(size: 17, weight: .regular))
-                            .foregroundColor(AppColor.textSecondary)
+                            .foregroundColor(theme.textSecondary)
                     }
                 }
             }
         }
+        .id(languageStore.selection)
     }
 }
 
@@ -84,6 +86,7 @@ struct RoutineListView: View {
 struct CDRoutineCard: View {
     let routine: Routine
     @Environment(\.managedObjectContext) var managedObjectContext
+    @Environment(\.themePalette) private var theme
     
     @Binding var refreshTrigger: UUID
     
@@ -103,22 +106,22 @@ struct CDRoutineCard: View {
         let remainingCount = max(sortedSteps.count - maxShown, 0)
         if remainingCount > 0 {
             let prefix = shownSteps.joined(separator: " · ")
-            return "\(prefix)  외 \(remainingCount)개"
+            return String(format: String(localized: "routine.list.steps.more"), prefix, remainingCount)
         }
         return shownSteps.joined(separator: " · ")
     }
 
     var lastRunDisplay: String {
         if let date = lastRunDate {
-            return "마지막 실행: \(formatDate(date))"
+            return String(format: String(localized: "routine.list.lastRun"), formatDate(date))
         }
         if let createdAt = routine.createdAt {
-            return "생성일: \(formatDate(createdAt))"
+            return String(format: String(localized: "routine.list.createdAt"), formatDate(createdAt))
         }
         if let updatedAt = routine.updatedAt {
-            return "마지막 수정: \(formatDate(updatedAt))"
+            return String(format: String(localized: "routine.list.updatedAt"), formatDate(updatedAt))
         }
-        return "생성일: 없음"
+        return String(localized: "routine.list.createdAt.none")
     }
 
     var lastRunDate: Date? {
@@ -132,22 +135,22 @@ struct CDRoutineCard: View {
                 VStack(alignment: .leading, spacing: 8) {
                     // Title and Time Steps
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(routine.name ?? "루틴")
+                        Text(routine.name ?? String(localized: "app.routine.defaultName"))
                             .font(AppFont.headline())
-                            .foregroundColor(AppColor.textPrimary)
+                            .foregroundColor(theme.textPrimary)
                         
-                        Text(timeStepsDisplay.isEmpty ? "스텝 없음" : timeStepsDisplay)
+                        Text(timeStepsDisplay.isEmpty ? String(localized: "routine.list.steps.none") : timeStepsDisplay)
                             .font(AppFont.body())
-                            .foregroundColor(AppColor.textSecondary)
+                            .foregroundColor(theme.textSecondary)
                     }
                     
                     // Created Date Badge
                     Text(lastRunDisplay)
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(Color.gray)
+                        .foregroundColor(theme.textSecondary)
                         .padding(.vertical, 4)
                         .padding(.horizontal, 8)
-                        .background(Color(hex: "F2F2F7"))
+                        .background(theme.background)
                         .cornerRadius(8)
                 }
                 
@@ -161,37 +164,37 @@ struct CDRoutineCard: View {
                         .font(.system(size: 18))
                         .foregroundColor(.white)
                         .padding(10)
-                        .background(AppColor.primary)
+                        .background(theme.accent)
                         .clipShape(Circle())
-                        .shadow(color: AppColor.primary.opacity(0.4), radius: 4, x: 0, y: 2)
+                        .shadow(color: theme.accent.opacity(0.4), radius: 4, x: 0, y: 2)
                 }
             }
             .padding(16)
-            .background(Color.white)
+            .background(theme.surface)
             .contentShape(Rectangle())
             .onTapGesture {
                 showEditView = true
             }
         }
-        .background(Color.white)
+        .background(theme.surface)
         .cornerRadius(AppRadius.standard)
-        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+        .shadow(color: theme.shadow, radius: 8, x: 0, y: 2)
         .overlay(
             RoundedRectangle(cornerRadius: AppRadius.standard)
-                .stroke(Color(hex: "F2F2F7"), lineWidth: 1)
+                .stroke(theme.border, lineWidth: 1)
         )
         .contextMenu {
             Button(role: .destructive) {
                 deleteRoutine()
             } label: {
-                Label("삭제", systemImage: "trash")
+                Label("common.delete", systemImage: "trash")
             }
         }
         .swipeActions(edge: .trailing) {
             Button(role: .destructive) {
                 deleteRoutine()
             } label: {
-                Label("삭제", systemImage: "trash")
+                Label("common.delete", systemImage: "trash")
             }
         }
         .sheet(isPresented: $showConfigSheet) {
@@ -232,20 +235,20 @@ struct CDRoutineCard: View {
         let secs = total % 60
         if hours > 0 {
             if minutes > 0 && secs > 0 {
-                return "\(hours)h \(minutes)m \(secs)s"
+                return String(format: String(localized: "duration.compact.hms"), hours, minutes, secs)
             }
             if minutes > 0 {
-                return "\(hours)h \(minutes)m"
+                return String(format: String(localized: "duration.compact.hm"), hours, minutes)
             }
-            return "\(hours)h \(secs)s"
+            return String(format: String(localized: "duration.compact.hs"), hours, secs)
         }
         if minutes > 0 && secs > 0 {
-            return "\(minutes)m \(secs)s"
+            return String(format: String(localized: "duration.compact.ms"), minutes, secs)
         }
         if minutes > 0 {
-            return "\(minutes)m"
+            return String(format: String(localized: "duration.compact.m"), minutes)
         }
-        return "\(secs)s"
+        return String(format: String(localized: "duration.compact.s"), secs)
     }
 
     private func formatDate(_ date: Date) -> String {
@@ -257,6 +260,7 @@ struct CDRoutineCard: View {
 
 struct RoutineCard: View {
     let routine: Routine
+    @Environment(\.themePalette) private var theme
     @State private var showConfigSheet = false
     @State private var startTimer = false
     
@@ -265,13 +269,13 @@ struct RoutineCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 // Title and Time Steps
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(routine.name ?? "루틴")
+                    Text(routine.name ?? String(localized: "app.routine.defaultName"))
                         .font(AppFont.headline())
-                        .foregroundColor(AppColor.textPrimary)
+                        .foregroundColor(theme.textPrimary)
                     
                     Text("")
                         .font(AppFont.body())
-                        .foregroundColor(AppColor.textSecondary)
+                        .foregroundColor(theme.textSecondary)
                 }
             }
             
@@ -281,22 +285,22 @@ struct RoutineCard: View {
             Button(action: {
                 showConfigSheet = true
             }) {
-                Image(systemName: "play.fill")
-                    .font(.system(size: 18))
-                    .foregroundColor(.white)
-                    .padding(10)
-                    .background(AppColor.primary)
-                    .clipShape(Circle())
-                    .shadow(color: AppColor.primary.opacity(0.4), radius: 4, x: 0, y: 2)
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(.white)
+                        .padding(10)
+                        .background(theme.accent)
+                        .clipShape(Circle())
+                        .shadow(color: theme.accent.opacity(0.4), radius: 4, x: 0, y: 2)
             }
         }
         .padding(16)
-        .background(Color.white)
+        .background(theme.surface)
         .cornerRadius(AppRadius.standard)
-        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+        .shadow(color: theme.shadow, radius: 8, x: 0, y: 2)
         .overlay(
             RoundedRectangle(cornerRadius: AppRadius.standard)
-                .stroke(Color(hex: "F2F2F7"), lineWidth: 1)
+                .stroke(theme.border, lineWidth: 1)
         )
         .sheet(isPresented: $showConfigSheet) {
             NotificationModeSheet(routine: routine, onStart: { selectedRoutine, config, transitionMode in

@@ -1,0 +1,140 @@
+"app.routine.defaultName" = "루틴";
+"app.step.defaultName" = "작업";
+
+"common.confirm" = "확인";
+"common.start" = "시작";
+"common.startNow" = "시작하기";
+"common.later" = "나중에";
+"common.done" = "완료";
+"common.save" = "저장";
+"common.delete" = "삭제";
+"common.stop" = "종료";
+"common.skip" = "건너뛰기";
+"common.pause" = "일시정지";
+"common.resume" = "재개";
+
+"settings.title" = "설정";
+"settings.section.timer" = "타이머";
+"settings.keepScreenOn" = "타이머 실행 중 화면 켜짐 유지";
+"settings.section.notificationDefaults" = "알림 기본값";
+"settings.notification.help" = "알림음과 진동 패턴은 앱이 켜져 있을 때만 적용돼요.";
+"settings.notification.sound" = "알림음";
+"settings.notification.vibration" = "진동 패턴";
+"settings.section.info" = "정보";
+"settings.appVersion" = "앱 버전";
+
+"routine.list.title" = "내 루틴";
+"routine.list.empty" = "아직 루틴이 없습니다.";
+"routine.list.add" = "루틴 추가";
+"routine.list.lastRun" = "마지막 실행: %@";
+"routine.list.createdAt" = "생성일: %@";
+"routine.list.updatedAt" = "마지막 수정: %@";
+"routine.list.createdAt.none" = "생성일: 없음";
+"routine.list.steps.none" = "스텝 없음";
+"routine.list.steps.more" = "%@  외 %d개";
+
+"routine.detail.title.name" = "루틴 이름";
+"routine.detail.title.createdAt" = "생성일";
+"routine.detail.steps.title" = "단계 (%d)";
+"routine.detail.steps.empty" = "단계가 없습니다";
+
+"routine.create.title.new" = "루틴 만들기";
+"routine.create.title.edit" = "루틴 편집";
+"routine.create.name.label" = "루틴 이름";
+"routine.create.name.placeholder" = "새 루틴";
+"routine.create.template.toggle" = "템플릿으로 저장";
+"routine.create.template.section" = "템플릿 루틴";
+"routine.create.step.section" = "단계 목록";
+"routine.create.step.empty" = "루틴을 만들려면 먼저 단계를 추가해주세요.";
+"routine.create.step.add" = "단계 추가";
+"routine.create.alert.title" = "입력 확인";
+"routine.create.validation.name" = "루틴 이름을 입력해주세요.";
+"routine.create.validation.steps" = "단계를 최소 1개 추가해주세요.";
+"routine.create.validation.stepName" = "단계 이름을 입력해주세요.";
+"routine.create.validation.duration" = "시간을 00:00:00 이상으로 입력해주세요.";
+"routine.create.stepName.placeholder" = "단계 이름";
+"routine.create.time.title" = "시간 설정";
+"routine.create.time.hours" = "시간";
+"routine.create.time.minutes" = "분";
+"routine.create.time.seconds" = "초";
+
+"template.commute.name" = "출근 루틴";
+"template.commute.step.prepare" = "준비";
+"template.commute.step.move" = "이동";
+"template.commute.step.arrive" = "도착";
+"template.class.name" = "수업 루틴";
+"template.class.step.lesson1" = "수업 1";
+"template.class.step.break" = "쉬는시간";
+"template.class.step.lesson2" = "수업 2";
+"template.class.step.cleanup" = "정리";
+
+"sheet.notificationMode.title" = "실행 방식";
+"sheet.notificationMode.preset.basic" = "기본값";
+"sheet.notificationMode.preset.previous" = "이전 설정";
+"sheet.notificationMode.step.title" = "단계 진행 방식";
+"sheet.notificationMode.step.auto.title" = "자동";
+"sheet.notificationMode.step.auto.subtitle" = "바로 다음 단계로 시작";
+"sheet.notificationMode.step.manual.title" = "수동";
+"sheet.notificationMode.step.manual.subtitle" = "직접 다음 단계 시작";
+"sheet.notificationMode.alert.title" = "알림 전달 방식";
+"sheet.notificationMode.start" = "시작";
+
+"notification.mode.sound" = "소리";
+"notification.mode.vibration" = "진동";
+"notification.mode.soundAndVibration" = "소리 + 진동";
+"notification.mode.soundAndVibration.compact" = "소리+진동";
+"transition.mode.auto" = "자동";
+"transition.mode.manual" = "수동";
+
+"timer.running.keepScreenOn" = "화면 켜짐 유지";
+"timer.running.executionMode" = "실행 방식: %@/%@";
+"timer.running.finishAlert.title" = "루틴 종료";
+"timer.running.finishAlert.message" = "모든 단계를 완료했습니다!";
+"timer.running.autoAdvanceAlert.title" = "단계 완료";
+"timer.running.autoAdvanceAlert.message" = "다음 단계로 넘어갈게요.";
+"timer.running.manualAlert.title" = "단계 완료";
+"timer.running.manualAlert.message.last" = "모든 단계를 완료했어요.";
+"timer.running.manualAlert.message.next" = "다음 단계로 넘어갈까요?";
+"timer.running.nextStep.full" = "다음: %@ (%d분 %d초)";
+"timer.running.nextStep.minutes" = "다음: %@ (%d분)";
+"timer.running.nextStep.seconds" = "다음: %@ (%d초)";
+"timer.running.lastStep" = "마지막 단계";
+"timer.running.currentStep.default" = "작업";
+
+"notification.title.routineComplete" = "루틴 완료";
+"notification.body.routineComplete" = "%@이(가) 완료되었습니다.";
+"notification.title.stepComplete" = "단계 완료";
+"notification.body.stepComplete" = "%@ 완료. 다음: %@";
+
+"duration.long.hms" = "%d시간 %d분 %d초";
+"duration.long.ms" = "%d분 %d초";
+"duration.long.s" = "%d초";
+
+"duration.compact.hms" = "%dh %dm %ds";
+"duration.compact.hm" = "%dh %dm";
+"duration.compact.hs" = "%dh %ds";
+"duration.compact.ms" = "%dm %ds";
+"duration.compact.m" = "%dm";
+"duration.compact.s" = "%ds";
+
+"notification.sound.default" = "기본";
+"notification.sound.short" = "짧은 알림";
+"notification.sound.soft" = "부드러운 알림";
+
+"notification.vibration.default" = "기본";
+"notification.vibration.short" = "짧은 진동";
+"notification.vibration.double" = "두 번 진동";
+"notification.vibration.heavy" = "강한 진동";
+
+"settings.section.theme" = "테마";
+"settings.theme.system" = "시스템 기본값";
+"settings.theme.lightBlue" = "라이트 · 블루";
+"settings.theme.lightCoral" = "라이트 · 코럴";
+"settings.theme.darkBlue" = "다크 · 블루";
+"settings.theme.darkCoral" = "다크 · 코럴";
+"notification.mode.soundAndVibration.multiline" = "소리 + 진동";
+
+"settings.section.language" = "언어";
+"settings.language.system" = "시스템 기본값";
+"settings.language.korean" = "한국어";
+"settings.language.english" = "영어";

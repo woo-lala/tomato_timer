@@ -5,6 +5,7 @@ import CoreData
 struct RoutineDetailView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.managedObjectContext) var managedObjectContext
+    @Environment(\.themePalette) private var theme
     
     let routine: Routine
     @State private var isEditing = false
@@ -17,7 +18,7 @@ struct RoutineDetailView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(UIColor.systemGroupedBackground).ignoresSafeArea()
+                theme.background.ignoresSafeArea()
                 
                 if isEditing {
                     RoutineCreateView(routine: routine)
@@ -26,17 +27,17 @@ struct RoutineDetailView: View {
                         VStack(spacing: 24) {
                             // 루틴 이름
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("루틴 이름")
+                                Text("routine.detail.title.name")
                                     .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(theme.textSecondary)
                                     .padding(.leading, 4)
                                 
-                                Text(routine.name ?? "루틴")
+                                Text(routine.name ?? String(localized: "app.routine.defaultName"))
                                     .font(AppFont.headline())
-                                    .foregroundColor(AppColor.textPrimary)
+                                    .foregroundColor(theme.textPrimary)
                                     .padding(16)
                                     .frame(maxWidth: .infinity, alignment: .leading)
-                                    .background(Color.white)
+                                    .background(theme.surface)
                                     .cornerRadius(12)
                             }
                             .padding(.horizontal, AppSpacing.mediumPlus)
@@ -44,17 +45,17 @@ struct RoutineDetailView: View {
                             // 생성일
                             if let createdAt = routine.createdAt {
                                 VStack(alignment: .leading, spacing: 8) {
-                                    Text("생성일")
+                                    Text("routine.detail.title.createdAt")
                                         .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(.gray)
+                                        .foregroundColor(theme.textSecondary)
                                         .padding(.leading, 4)
                                     
                                     Text(createdAt.formatted(date: .abbreviated, time: .shortened))
                                         .font(.system(size: 15))
-                                        .foregroundColor(AppColor.textPrimary)
+                                        .foregroundColor(theme.textPrimary)
                                         .padding(16)
                                         .frame(maxWidth: .infinity, alignment: .leading)
-                                        .background(Color.white)
+                                        .background(theme.surface)
                                         .cornerRadius(12)
                                 }
                                 .padding(.horizontal, AppSpacing.mediumPlus)
@@ -62,9 +63,9 @@ struct RoutineDetailView: View {
                             
                             // 단계 목록
                             VStack(alignment: .leading, spacing: 12) {
-                                Text("단계 (\(sortedSteps.count))")
+                                Text(String(format: String(localized: "routine.detail.steps.title"), sortedSteps.count))
                                     .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(theme.textSecondary)
                                     .padding(.leading, 4)
                                     .padding(.horizontal, AppSpacing.mediumPlus)
                                 
@@ -72,15 +73,15 @@ struct RoutineDetailView: View {
                                     VStack(alignment: .center, spacing: 8) {
                                         Image(systemName: "list.bullet.indent")
                                             .font(.system(size: 32))
-                                            .foregroundColor(.gray)
+                                            .foregroundColor(theme.textSecondary)
                                         
-                                        Text("단계가 없습니다")
+                                        Text("routine.detail.steps.empty")
                                             .font(.system(size: 16, weight: .medium))
-                                            .foregroundColor(.gray)
+                                            .foregroundColor(theme.textSecondary)
                                     }
                                     .frame(maxWidth: .infinity)
                                     .padding(32)
-                                    .background(Color.white)
+                                    .background(theme.surface)
                                     .cornerRadius(12)
                                     .padding(.horizontal, AppSpacing.mediumPlus)
                                 } else {
@@ -92,18 +93,18 @@ struct RoutineDetailView: View {
                                                         .font(.system(size: 12, weight: .semibold))
                                                         .foregroundColor(.white)
                                                         .frame(width: 28, height: 28)
-                                                        .background(AppColor.primary)
+                                                        .background(theme.accent)
                                                         .clipShape(Circle())
                                                 }
                                                 
                                                 VStack(alignment: .leading, spacing: 4) {
-                                                    Text(step.title ?? "작업")
+                                                    Text(step.title ?? String(localized: "app.step.defaultName"))
                                                         .font(.system(size: 15, weight: .semibold))
-                                                        .foregroundColor(AppColor.textPrimary)
+                                                        .foregroundColor(theme.textPrimary)
                                                     
                                                     Text(formatDuration(Int(step.durationSeconds)))
                                                         .font(.system(size: 13))
-                                                        .foregroundColor(AppColor.textSecondary)
+                                                        .foregroundColor(theme.textSecondary)
                                                 }
                                                 
                                                 Spacer()
@@ -111,11 +112,11 @@ struct RoutineDetailView: View {
                                                 VStack(alignment: .trailing, spacing: 0) {
                                                     Text(formatDigitalDuration(Int(step.durationSeconds)))
                                                         .font(.system(size: 16, weight: .semibold, design: .monospaced))
-                                                        .foregroundColor(AppColor.primary)
+                                                        .foregroundColor(theme.accent)
                                                 }
                                             }
                                             .padding(12)
-                                            .background(Color.white)
+                                            .background(theme.surface)
                                             .cornerRadius(8)
                                         }
                                     }
@@ -141,9 +142,9 @@ struct RoutineDetailView: View {
                             dismiss()
                         }
                     }) {
-                        Image(systemName: "chevron.left")
-                            .foregroundColor(.black)
-                            .font(.system(size: 18, weight: .medium))
+                            Image(systemName: "chevron.left")
+                                .foregroundColor(theme.textPrimary)
+                                .font(.system(size: 18, weight: .medium))
                     }
                 }
                 
@@ -153,7 +154,7 @@ struct RoutineDetailView: View {
                             isEditing = true
                         }) {
                             Image(systemName: "pencil")
-                                .foregroundColor(AppColor.primary)
+                                .foregroundColor(theme.accent)
                                 .font(.system(size: 16, weight: .semibold))
                         }
                     }
@@ -163,11 +164,11 @@ struct RoutineDetailView: View {
                             Button(role: .destructive, action: {
                                 deleteRoutine()
                             }) {
-                                Label("삭제", systemImage: "trash")
+                                Label("common.delete", systemImage: "trash")
                             }
                         } label: {
                             Image(systemName: "ellipsis")
-                                .foregroundColor(AppColor.primary)
+                                .foregroundColor(theme.accent)
                         }
                     }
                 }
@@ -187,12 +188,12 @@ struct RoutineDetailView: View {
         let minutes = (total % 3600) / 60
         let secs = total % 60
         if hours > 0 {
-            return "\(hours)시간 \(minutes)분 \(secs)초"
+            return String(format: String(localized: "duration.long.hms"), hours, minutes, secs)
         }
         if minutes > 0 {
-            return "\(minutes)분 \(secs)초"
+            return String(format: String(localized: "duration.long.ms"), minutes, secs)
         }
-        return "\(secs)초"
+        return String(format: String(localized: "duration.long.s"), secs)
     }
 
     private func formatDigitalDuration(_ seconds: Int) -> String {

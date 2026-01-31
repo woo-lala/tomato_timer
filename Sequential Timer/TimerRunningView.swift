@@ -10,6 +10,7 @@ struct TimerRunningView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.managedObjectContext) var managedObjectContext
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.themePalette) private var theme
     
     let routine: Routine
     let initialConfiguration: NotificationConfiguration?
@@ -58,23 +59,23 @@ struct TimerRunningView: View {
     }
     
     var currentStepName: String {
-        guard currentStepIndex < timeline.count else { return "작업" }
+        guard currentStepIndex < timeline.count else { return String(localized: "timer.running.currentStep.default") }
         return timeline[currentStepIndex].name
     }
     
     var nextStepInfo: String {
         let nextIndex = currentStepIndex + 1
-        guard nextIndex < timeline.count else { return "마지막 단계" }
+        guard nextIndex < timeline.count else { return String(localized: "timer.running.lastStep") }
         let next = timeline[nextIndex]
         let minutes = next.durationSeconds / 60
         let seconds = next.durationSeconds % 60
         if minutes > 0 && seconds > 0 {
-            return "다음: \(next.name) (\(minutes)분 \(seconds)초)"
+            return String(format: String(localized: "timer.running.nextStep.full"), next.name, minutes, seconds)
         }
         if minutes > 0 {
-            return "다음: \(next.name) (\(minutes)분)"
+            return String(format: String(localized: "timer.running.nextStep.minutes"), next.name, minutes)
         }
-        return "다음: \(next.name) (\(seconds)초)"
+        return String(format: String(localized: "timer.running.nextStep.seconds"), next.name, seconds)
     }
 
     var displayStepIndex: Int {
@@ -85,7 +86,7 @@ struct TimerRunningView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(UIColor.systemGroupedBackground).ignoresSafeArea()
+                theme.background.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
                     Spacer()
@@ -95,55 +96,55 @@ struct TimerRunningView: View {
                         // Step Badge
                         Text("\(displayStepIndex)/\(sortedSteps.count)")
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(AppColor.primary)
+                            .foregroundColor(theme.accent)
                             .padding(.vertical, 6)
                             .padding(.horizontal, 12)
-                            .background(AppColor.primary.opacity(0.1))
+                            .background(theme.accent.opacity(0.1))
                             .cornerRadius(12)
                             .padding(.top, 20)
                         
                         // Current Step Name
                         Text(currentStepName)
                             .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(.black)
+                            .foregroundColor(theme.textPrimary)
                         
                         // Timer Display
                         Text(timeString)
                             .font(.system(size: 80, weight: .bold, design: .monospaced))
-                            .foregroundColor(AppColor.primary)
+                            .foregroundColor(theme.accent)
                             .padding(.vertical, 10)
                             .minimumScaleFactor(0.5)
                         
                         // Next Step Info
                         Text(nextStepInfo)
                             .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.gray)
+                            .foregroundColor(theme.textSecondary)
                             .padding(.bottom, 10)
                     }
                     .padding(AppSpacing.mediumPlus)
                     .frame(maxWidth: .infinity)
-                    .background(Color.white)
+                    .background(theme.surface)
                     .cornerRadius(30)
-                    .shadow(color: Color.black.opacity(0.08), radius: 24, x: 0, y: 12)
+                    .shadow(color: theme.shadow, radius: 24, x: 0, y: 12)
                     .padding(.horizontal, AppSpacing.mediumPlus)
                     .offset(y: -32)
                     
                     // Options below card
                     VStack(spacing: 20) {
-                        Toggle("화면 켜짐 유지", isOn: $isScreenOn)
-                            .toggleStyle(SwitchToggleStyle(tint: AppColor.primary))
+                        Toggle("timer.running.keepScreenOn", isOn: $isScreenOn)
+                            .toggleStyle(SwitchToggleStyle(tint: theme.accent))
                             .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.black)
+                            .foregroundColor(theme.textPrimary)
                         
                         Button(action: {
                             showAlarmSettings = true
                         }) {
                             HStack(spacing: 8) {
                                 Image(systemName: "bell.fill")
-                                    .foregroundColor(.gray)
-                                Text("실행 방식: \(transitionDisplayText)/\(configDisplayText)")
+                                    .foregroundColor(theme.textSecondary)
+                                Text(String(format: String(localized: "timer.running.executionMode"), transitionDisplayText, configDisplayText))
                                     .font(.system(size: 14))
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(theme.textSecondary)
                                 Spacer()
                             }
                         }
@@ -170,9 +171,9 @@ struct TimerRunningView: View {
                                             .foregroundColor(.red)
                                     )
                             }
-                            Text("종료")
+                            Text("common.stop")
                                 .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.gray)
+                                .foregroundColor(theme.textSecondary)
                         }
                         
                         // Pause/Play Button
@@ -181,9 +182,9 @@ struct TimerRunningView: View {
                                 handlePrimaryAction()
                             }) {
                                 Circle()
-                                    .fill(AppColor.primary)
+                                    .fill(theme.accent)
                                     .frame(width: 72, height: 72)
-                                    .shadow(color: AppColor.primary.opacity(0.3), radius: 8, x: 0, y: 4)
+                                    .shadow(color: theme.accent.opacity(0.3), radius: 8, x: 0, y: 4)
                                     .overlay(
                                         Image(systemName: primaryActionIconName)
                                             .font(.system(size: 28, weight: .bold))
@@ -193,7 +194,7 @@ struct TimerRunningView: View {
                             }
                             Text(primaryActionLabel)
                                 .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.gray)
+                                .foregroundColor(theme.textSecondary)
                         }
                         
                         // Skip Button
@@ -202,24 +203,24 @@ struct TimerRunningView: View {
                                 skipToNextStep()
                             }) {
                                 Circle()
-                                    .fill(Color(UIColor.systemGray6))
+                                    .fill(theme.background)
                                     .frame(width: 72, height: 72)
                                     .overlay(
                                         Image(systemName: "forward.fill")
                                             .font(.system(size: 26))
-                                            .foregroundColor(.gray)
+                                            .foregroundColor(theme.textSecondary)
                                     )
                             }
-                            Text("건너뛰기")
+                            Text("common.skip")
                                 .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.gray)
+                                .foregroundColor(theme.textSecondary)
                         }
                     }
                     .padding(.horizontal, AppSpacing.mediumPlus)
                     .padding(.bottom, 20)
                 }
             }
-            .navigationTitle(routine.name ?? "루틴")
+            .navigationTitle(routine.name ?? String(localized: "app.routine.defaultName"))
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(true)
             .toolbar {
@@ -227,35 +228,35 @@ struct TimerRunningView: View {
                     Button(action: {
                         dismiss()
                     }) {
-                        Image(systemName: "chevron.left")
-                            .foregroundColor(.black)
-                            .font(.system(size: 18, weight: .medium))
+                            Image(systemName: "chevron.left")
+                                .foregroundColor(theme.textPrimary)
+                                .font(.system(size: 18, weight: .medium))
                     }
             }
         }
-        .alert("루틴 종료", isPresented: $showFinishAlert) {
-            Button("확인", action: {
+        .alert("timer.running.finishAlert.title", isPresented: $showFinishAlert) {
+            Button("common.confirm", action: {
                 dismiss()
             })
         } message: {
-            Text("모든 단계를 완료했습니다!")
+            Text("timer.running.finishAlert.message")
         }
         .alert(manualAlertTitle, isPresented: $showManualNextAlert) {
             Button(manualAlertPrimaryLabel, action: {
                 startNextStepFromManualAlert()
             })
             if manualAlertShowsLaterButton {
-                Button("나중에", role: .cancel) {
+                Button("common.later", role: .cancel) {
                     handleManualAlertLater()
                 }
             }
         } message: {
             Text(manualAlertMessage)
         }
-        .alert("단계 완료", isPresented: $showAutoAdvanceAlert) {
-            Button("확인", role: .cancel) {}
+        .alert("timer.running.autoAdvanceAlert.title", isPresented: $showAutoAdvanceAlert) {
+            Button("common.confirm", role: .cancel) {}
         } message: {
-            Text("다음 단계로 넘어갈게요.")
+            Text("timer.running.autoAdvanceAlert.message")
         }
             .sheet(isPresented: $showAlarmSettings) {
                 NotificationModeSheet(routine: routine, onStart: { selectedRoutine, config, transitionMode in
@@ -456,11 +457,11 @@ struct TimerRunningView: View {
     private var primaryActionLabel: String {
         switch sessionState?.isPaused {
         case .some(false):
-            return "일시정지"
+            return String(localized: "common.pause")
         case .some(true):
-            return "재개"
+            return String(localized: "common.resume")
         default:
-            return "시작"
+            return String(localized: "common.start")
         }
     }
 
@@ -597,13 +598,14 @@ struct TimerRunningView: View {
                 let content = UNMutableNotificationContent()
                 let identifier: String
                 if item.index == timeline.count - 1 {
-                    content.title = "루틴 완료"
-                    content.body = "\(routine.name ?? "루틴")이(가) 완료되었습니다."
+                    content.title = String(localized: "notification.title.routineComplete")
+                    let routineName = routine.name ?? String(localized: "app.routine.defaultName")
+                    content.body = String(format: String(localized: "notification.body.routineComplete"), routineName)
                     identifier = completionNotificationIdentifier(sessionId: state.sessionId)
                 } else {
                     let nextName = timeline[item.index + 1].name
-                    content.title = "단계 완료"
-                    content.body = "\(item.name) 완료. 다음: \(nextName)"
+                    content.title = String(localized: "notification.title.stepComplete")
+                    content.body = String(format: String(localized: "notification.body.stepComplete"), item.name, nextName)
                     identifier = notificationIdentifier(sessionId: state.sessionId, stepIndex: item.index)
                 }
                 content.sound = notificationSound(for: configuration)
@@ -618,13 +620,14 @@ struct TimerRunningView: View {
                 let content = UNMutableNotificationContent()
                 let identifier: String
                 if item.index == timeline.count - 1 {
-                    content.title = "루틴 완료"
-                    content.body = "\(routine.name ?? "루틴")이(가) 완료되었습니다."
+                    content.title = String(localized: "notification.title.routineComplete")
+                    let routineName = routine.name ?? String(localized: "app.routine.defaultName")
+                    content.body = String(format: String(localized: "notification.body.routineComplete"), routineName)
                     identifier = completionNotificationIdentifier(sessionId: state.sessionId)
                 } else {
                     let nextName = timeline[item.index + 1].name
-                    content.title = "단계 완료"
-                    content.body = "\(item.name) 완료. 다음: \(nextName)"
+                    content.title = String(localized: "notification.title.stepComplete")
+                    content.body = String(format: String(localized: "notification.body.stepComplete"), item.name, nextName)
                     identifier = notificationIdentifier(sessionId: state.sessionId, stepIndex: item.index)
                 }
                 content.sound = notificationSound(for: configuration)
@@ -664,12 +667,13 @@ struct TimerRunningView: View {
             let fireAfter = TimeInterval(remaining) + (backgroundRepeatInterval * Double(offsetIndex))
             let content = UNMutableNotificationContent()
             if stepIndex == timeline.count - 1 {
-                content.title = "루틴 완료"
-                content.body = "\(routine.name ?? "루틴")이(가) 완료되었습니다."
+                content.title = String(localized: "notification.title.routineComplete")
+                let routineName = routine.name ?? String(localized: "app.routine.defaultName")
+                content.body = String(format: String(localized: "notification.body.routineComplete"), routineName)
             } else {
                 let nextName = timeline[stepIndex + 1].name
-                content.title = "단계 완료"
-                content.body = "\(timeline[stepIndex].name) 완료. 다음: \(nextName)"
+                content.title = String(localized: "notification.title.stepComplete")
+                content.body = String(format: String(localized: "notification.body.stepComplete"), timeline[stepIndex].name, nextName)
             }
             content.threadIdentifier = "seqtimer.repeat.\(state.sessionId.uuidString)"
             content.sound = notificationSound(for: configuration)
@@ -793,21 +797,21 @@ struct TimerRunningView: View {
     }
 
     private var manualAlertTitle: String {
-        "단계 완료"
+        String(localized: "timer.running.manualAlert.title")
     }
 
     private var manualAlertMessage: String {
         if isLastStep {
-            return "모든 단계를 완료했어요."
+            return String(localized: "timer.running.manualAlert.message.last")
         }
-        return "다음 단계로 넘어갈까요?"
+        return String(localized: "timer.running.manualAlert.message.next")
     }
 
     private var manualAlertPrimaryLabel: String {
         if isLastStep {
-            return "확인"
+            return String(localized: "common.confirm")
         }
-        return "시작하기"
+        return String(localized: "common.startNow")
     }
 
     private var isLastStep: Bool {
@@ -903,11 +907,11 @@ struct TimerRunningView: View {
     var configDisplayText: String {
         switch configuration.mode {
         case .sound:
-            return "소리"
+            return String(localized: "notification.mode.sound")
         case .vibration:
-            return "진동"
+            return String(localized: "notification.mode.vibration")
         case .soundAndVibration:
-            return "소리+진동"
+            return String(localized: "notification.mode.soundAndVibration.compact")
         }
     }
 
@@ -915,9 +919,9 @@ struct TimerRunningView: View {
         let mode = sessionState?.stepTransitionMode ?? initialStepTransitionMode
         switch mode {
         case .auto:
-            return "자동"
+            return String(localized: "transition.mode.auto")
         case .manual:
-            return "수동"
+            return String(localized: "transition.mode.manual")
         }
     }
 }

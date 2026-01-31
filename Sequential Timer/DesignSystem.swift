@@ -133,6 +133,17 @@ public enum NotificationSound: String, CaseIterable, Codable {
     case `default` = "기본"
     case short = "짧은 알림"
     case soft = "부드러운 알림"
+
+    var displayName: String {
+        switch self {
+        case .default:
+            return String(localized: "notification.sound.default")
+        case .short:
+            return String(localized: "notification.sound.short")
+        case .soft:
+            return String(localized: "notification.sound.soft")
+        }
+    }
     
     public var audioResourceName: String? {
         switch self {
@@ -148,6 +159,19 @@ enum VibrationPattern: String, CaseIterable, Codable {
     case short = "짧은 진동"
     case double = "두 번 진동"
     case heavy = "강한 진동"
+
+    var displayName: String {
+        switch self {
+        case .default:
+            return String(localized: "notification.vibration.default")
+        case .short:
+            return String(localized: "notification.vibration.short")
+        case .double:
+            return String(localized: "notification.vibration.double")
+        case .heavy:
+            return String(localized: "notification.vibration.heavy")
+        }
+    }
 }
 
 struct NotificationConfiguration: Codable {

@@ -5,6 +5,7 @@ import CoreData
 struct RoutineCreateView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.managedObjectContext) var managedObjectContext
+    @Environment(\.themePalette) private var theme
     
     let routine: Routine?  // nil if creating new, non-nil if editing
     
@@ -21,16 +22,16 @@ struct RoutineCreateView: View {
     @State private var draggingItem: RoutineStepData?
     
     let defaultTemplates = [
-        RoutineTemplate(name: "출근 루틴", display: "30/10/20", steps: [
-            RoutineStepData(name: "준비", duration: "3000"),
-            RoutineStepData(name: "이동", duration: "1000"),
-            RoutineStepData(name: "도착", duration: "2000")
+        RoutineTemplate(name: String(localized: "template.commute.name"), display: "30/10/20", steps: [
+            RoutineStepData(name: String(localized: "template.commute.step.prepare"), duration: "3000"),
+            RoutineStepData(name: String(localized: "template.commute.step.move"), duration: "1000"),
+            RoutineStepData(name: String(localized: "template.commute.step.arrive"), duration: "2000")
         ]),
-        RoutineTemplate(name: "수업 루틴", display: "50/10/50/10", steps: [
-            RoutineStepData(name: "수업 1", duration: "5000"),
-            RoutineStepData(name: "쉬는시간", duration: "1000"),
-            RoutineStepData(name: "수업 2", duration: "5000"),
-            RoutineStepData(name: "정리", duration: "1000")
+        RoutineTemplate(name: String(localized: "template.class.name"), display: "50/10/50/10", steps: [
+            RoutineStepData(name: String(localized: "template.class.step.lesson1"), duration: "5000"),
+            RoutineStepData(name: String(localized: "template.class.step.break"), duration: "1000"),
+            RoutineStepData(name: String(localized: "template.class.step.lesson2"), duration: "5000"),
+            RoutineStepData(name: String(localized: "template.class.step.cleanup"), duration: "1000")
         ])
     ]
     
@@ -59,7 +60,7 @@ struct RoutineCreateView: View {
     
     var body: some View {
         ZStack {
-            Color(UIColor.systemGroupedBackground)
+            theme.background
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
@@ -69,27 +70,27 @@ struct RoutineCreateView: View {
                         VStack(alignment: .leading, spacing: 24) {
                             // Routine Name
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("루틴 이름")
+                                Text("routine.create.name.label")
                                     .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(theme.textSecondary)
                                     .padding(.leading, 4)
                                 
-                                TextField("새 루틴", text: $routineName)
+                                TextField("routine.create.name.placeholder", text: $routineName)
                                     .font(.system(size: 17))
                                     .padding(16)
-                                    .background(Color.white)
+                                    .background(theme.surface)
                                     .cornerRadius(12)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color(UIColor.systemGray5), lineWidth: 1)
+                                            .stroke(theme.border, lineWidth: 1)
                                     )
                             }
                             
                             // Template Toggle
                             HStack {
-                                Text("템플릿으로 저장")
+                                Text("routine.create.template.toggle")
                                     .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(theme.textSecondary)
                                     .padding(.leading, 4)
                                 
                                 Spacer()
@@ -97,15 +98,15 @@ struct RoutineCreateView: View {
                                 Toggle("", isOn: $isTemplate)
                                     .labelsHidden()
                                     .scaleEffect(0.8)
-                                    .tint(AppColor.primary)
+                                    .tint(theme.accent)
                             }
                             .padding(.top, -8) // Pull it closer to the field above
                             
                             // Templates Selection (Existing)
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("템플릿 루틴")
+                                Text("routine.create.template.section")
                                     .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(theme.textSecondary)
                                     .padding(.leading, 4)
                                 
                                 ScrollView(.horizontal, showsIndicators: false) {
@@ -118,18 +119,18 @@ struct RoutineCreateView: View {
                                                 HStack(spacing: 6) {
                                                     Text(template.name)
                                                         .font(.system(size: 15, weight: .medium))
-                                                        .foregroundColor(.primary)
+                                                        .foregroundColor(theme.textPrimary)
                                                     Text("(\(template.display))")
                                                         .font(.system(size: 13))
-                                                        .foregroundColor(.gray)
+                                                        .foregroundColor(theme.textSecondary)
                                                 }
                                                 .padding(.vertical, 10)
                                                 .padding(.horizontal, 16)
-                                                .background(Color.white)
+                                                .background(theme.surface)
                                                 .clipShape(Capsule())
                                                 .overlay(
                                                     Capsule()
-                                                        .stroke(Color(UIColor.systemGray4), lineWidth: 1)
+                                                        .stroke(theme.border, lineWidth: 1)
                                                 )
                                             }
                                         }
@@ -140,20 +141,20 @@ struct RoutineCreateView: View {
                                                 applyRoutineTemplate(routine)
                                             }) {
                                                 HStack(spacing: 6) {
-                                                    Text(routine.name ?? "루틴")
+                                                    Text(routine.name ?? String(localized: "app.routine.defaultName"))
                                                         .font(.system(size: 15, weight: .medium))
-                                                        .foregroundColor(.primary)
+                                                        .foregroundColor(theme.textPrimary)
                                                     Text("(\(getRoutineTimeDisplay(routine)))")
                                                         .font(.system(size: 13))
-                                                        .foregroundColor(.gray)
+                                                        .foregroundColor(theme.textSecondary)
                                                 }
                                                 .padding(.vertical, 10)
                                                 .padding(.horizontal, 16)
-                                                .background(Color.white)
+                                                .background(theme.surface)
                                                 .clipShape(Capsule())
                                                 .overlay(
                                                     Capsule()
-                                                        .stroke(Color(UIColor.systemGray4), lineWidth: 1)
+                                                        .stroke(theme.border, lineWidth: 1)
                                                 )
                                             }
                                         }
@@ -166,9 +167,9 @@ struct RoutineCreateView: View {
                         
                         // MARK: - Step List Section
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("단계 목록")
+                            Text("routine.create.step.section")
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.gray)
+                                .foregroundColor(theme.textSecondary)
                                 .padding(.leading, 4)
                             
                             VStack(spacing: 12) {
@@ -187,24 +188,24 @@ struct RoutineCreateView: View {
                         // Add Button Section
                         VStack(spacing: 8) {
                             if steps.isEmpty {
-                                Text("루틴을 만들려면 먼저 단계를 추가해주세요.")
+                                Text("routine.create.step.empty")
                                     .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(theme.textSecondary)
                             }
                             Button(action: {
                                 addStep()
                             }) {
                                 HStack {
                                     Image(systemName: "plus")
-                                    Text("단계 추가")
+                                    Text("routine.create.step.add")
                                 }
                                 .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.primary)
+                                .foregroundColor(theme.textPrimary)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
-                                .background(Color.white) // Changed to white to pop on grouped background
+                                .background(theme.surface)
                                 .cornerRadius(12)
-                                .shadow(color: Color.black.opacity(0.02), radius: 2, x: 0, y: 1)
+                                .shadow(color: theme.shadow.opacity(0.4), radius: 2, x: 0, y: 1)
                             }
                             .buttonStyle(PlainButtonStyle())
                         }
@@ -218,12 +219,12 @@ struct RoutineCreateView: View {
                     Button(action: {
                         saveRoutine()
                     }) {
-                        Text("저장")
+                        Text("common.save")
                             .font(.system(size: 17, weight: .bold))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
-                            .background(canSave ? AppColor.primary : AppColor.primary.opacity(0.35))
+                            .background(canSave ? theme.accent : theme.accent.opacity(0.35))
                             .cornerRadius(AppRadius.standard)
                     }
                     .disabled(!canSave)
@@ -231,14 +232,14 @@ struct RoutineCreateView: View {
                     .padding(.bottom, 10)
                 }
                 .padding(.top, 10)
-                .background(Color.white)
-                .shadow(color: Color.black.opacity(0.05), radius: 8, y: -4)
+                .background(theme.surface)
+                .shadow(color: theme.shadow, radius: 8, y: -4)
             }
         }
-        .navigationTitle(isEditingMode ? "루틴 편집" : "루틴 만들기")
+        .navigationTitle(Text(isEditingMode ? "routine.create.title.edit" : "routine.create.title.new"))
         .navigationBarTitleDisplayMode(.inline)
-        .alert("입력 확인", isPresented: $showValidationAlert) {
-            Button("확인", role: .cancel) {}
+        .alert("routine.create.alert.title", isPresented: $showValidationAlert) {
+            Button("common.confirm", role: .cancel) {}
         } message: {
             Text(validationMessage)
         }
@@ -260,12 +261,12 @@ struct RoutineCreateView: View {
     }
     
     private func applyRoutineTemplate(_ routine: Routine) {
-        self.routineName = routine.name ?? "루틴"
+        self.routineName = routine.name ?? String(localized: "app.routine.defaultName")
         let routineSteps = routine.steps as? Set<RoutineStep> ?? []
         let sortedSteps = routineSteps.sorted { ($0.order, $0.stepId?.uuidString ?? "") < ($1.order, $1.stepId?.uuidString ?? "") }
         self.steps = sortedSteps.map { step in
             let storage = storageString(from: Int(step.durationSeconds))
-            return RoutineStepData(name: step.title ?? "작업", duration: storage)
+            return RoutineStepData(name: step.title ?? String(localized: "app.step.defaultName"), duration: storage)
         }
     }
     
@@ -280,19 +281,19 @@ struct RoutineCreateView: View {
     private func saveRoutine() {
         guard canSave else { return }
         guard !routineName.isEmpty else {
-            showValidation(message: "루틴 이름을 입력해주세요.")
+            showValidation(message: String(localized: "routine.create.validation.name"))
             return
         }
         guard !steps.isEmpty else {
-            showValidation(message: "단계를 최소 1개 추가해주세요.")
+            showValidation(message: String(localized: "routine.create.validation.steps"))
             return
         }
         guard !steps.contains(where: { $0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) else {
-            showValidation(message: "단계 이름을 입력해주세요.")
+            showValidation(message: String(localized: "routine.create.validation.stepName"))
             return
         }
         guard !steps.contains(where: { isZeroDuration($0.duration) }) else {
-            showValidation(message: "시간을 00:00:00 이상으로 입력해주세요.")
+            showValidation(message: String(localized: "routine.create.validation.duration"))
             return
         }
         
@@ -379,12 +380,12 @@ struct RoutineCreateView: View {
         let minutes = total / 60
         let seconds = total % 60
         if minutes > 0 && seconds > 0 {
-            return "\(minutes)m\(seconds)s"
+            return String(format: String(localized: "duration.compact.ms"), minutes, seconds)
         }
         if minutes > 0 {
-            return "\(minutes)m"
+            return String(format: String(localized: "duration.compact.m"), minutes)
         }
-        return "\(seconds)s"
+        return String(format: String(localized: "duration.compact.s"), seconds)
     }
 
     private func clampSecondsValue(_ value: Int) -> Int {
@@ -402,7 +403,7 @@ struct RoutineCreateView: View {
             let sortedSteps = routineSteps.sorted { ($0.order, $0.stepId?.uuidString ?? "") < ($1.order, $1.stepId?.uuidString ?? "") }
             steps = sortedSteps.map { step in
                 let storage = storageString(from: Int(step.durationSeconds))
-                return RoutineStepData(name: step.title ?? "작업", duration: storage)
+                return RoutineStepData(name: step.title ?? String(localized: "app.step.defaultName"), duration: storage)
             }
         } else if steps.isEmpty {
             addStep()
@@ -467,12 +468,13 @@ struct RoutineStepRow: View {
     @Binding var step: RoutineStepData
     @Binding var draggingItem: RoutineStepData?
     var onDelete: () -> Void
+    @Environment(\.themePalette) private var theme
     
     var body: some View {
         HStack(spacing: 8) {
             // Drag Handle (Left)
             Image(systemName: "line.3.horizontal")
-                .foregroundColor(.gray)
+                .foregroundColor(theme.textSecondary)
                 .font(.system(size: 20))
                 .padding(.trailing, 4)
                 .onDrag {
@@ -481,11 +483,11 @@ struct RoutineStepRow: View {
                 }
             
             // Name Input
-            TextField("단계 이름", text: $step.name)
+            TextField("routine.create.stepName.placeholder", text: $step.name)
                 .font(.system(size: 16))
                 .padding(.vertical, 10)
                 .padding(.horizontal, 12)
-                .background(Color(UIColor.systemGray6))
+                .background(theme.background)
                 .cornerRadius(8)
                 .frame(minWidth: 100, maxWidth: .infinity)
                 .layoutPriority(1)
@@ -493,7 +495,7 @@ struct RoutineStepRow: View {
             // Time Input (Button + Bottom Sheet)
             TimePickerButton(duration: $step.duration)
                 .frame(width: 120)
-                .background(Color(UIColor.systemGray6))
+                .background(theme.background)
                 .cornerRadius(6)
             
             // Delete Icon
@@ -506,9 +508,9 @@ struct RoutineStepRow: View {
             .buttonStyle(.plain)
         }
         .padding(EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 4))
-        .background(Color.white)
+        .background(theme.surface)
         .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.02), radius: 2, x: 0, y: 1)
+        .shadow(color: theme.shadow.opacity(0.4), radius: 2, x: 0, y: 1)
     }
 }
 
@@ -518,6 +520,7 @@ struct TimePickerButton: View {
     @State private var hours: Int = 0
     @State private var minutes: Int = 0
     @State private var seconds: Int = 0
+    @Environment(\.themePalette) private var theme
 
     var body: some View {
         Button(action: {
@@ -527,10 +530,10 @@ struct TimePickerButton: View {
             HStack(spacing: 6) {
                 Text(formatDisplayFromStorage(duration))
                     .font(.system(size: 16, design: .monospaced))
-                    .foregroundColor(.primary)
+                    .foregroundColor(theme.textPrimary)
                 Image(systemName: "chevron.down")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.gray)
+                    .foregroundColor(theme.textSecondary)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
@@ -594,19 +597,21 @@ struct TimePickerSheet: View {
     @Binding var minutes: Int
     @Binding var seconds: Int
     var onDone: () -> Void
+    @Environment(\.themePalette) private var theme
 
     private let hourRange = Array(0...99)
     private let minuteSecondRange = Array(0...59)
 
     var body: some View {
         VStack(spacing: 0) {
-            Text("시간 설정")
+            Text("routine.create.time.title")
                 .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(theme.textPrimary)
                 .padding(.top, 16)
                 .padding(.bottom, 12)
 
             HStack(spacing: 0) {
-                Picker("시간", selection: $hours) {
+                Picker("routine.create.time.hours", selection: $hours) {
                     ForEach(hourRange, id: \.self) { value in
                         Text("\(value)")
                     }
@@ -615,7 +620,7 @@ struct TimePickerSheet: View {
                 .frame(maxWidth: .infinity)
                 .clipped()
 
-                Picker("분", selection: $minutes) {
+                Picker("routine.create.time.minutes", selection: $minutes) {
                     ForEach(minuteSecondRange, id: \.self) { value in
                         Text("\(value)")
                     }
@@ -624,7 +629,7 @@ struct TimePickerSheet: View {
                 .frame(maxWidth: .infinity)
                 .clipped()
 
-                Picker("초", selection: $seconds) {
+                Picker("routine.create.time.seconds", selection: $seconds) {
                     ForEach(minuteSecondRange, id: \.self) { value in
                         Text("\(value)")
                     }
@@ -635,28 +640,28 @@ struct TimePickerSheet: View {
             }
             .padding(.horizontal, 8)
             HStack {
-                Text("시간")
+                Text("routine.create.time.hours")
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.gray)
+                    .foregroundColor(theme.textSecondary)
                     .frame(maxWidth: .infinity)
-                Text("분")
+                Text("routine.create.time.minutes")
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.gray)
+                    .foregroundColor(theme.textSecondary)
                     .frame(maxWidth: .infinity)
-                Text("초")
+                Text("routine.create.time.seconds")
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.gray)
+                    .foregroundColor(theme.textSecondary)
                     .frame(maxWidth: .infinity)
             }
             .padding(.top, -8)
 
             Button(action: onDone) {
-                Text("완료")
+                Text("common.done")
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(AppColor.primary)
+                    .background(theme.accent)
                     .cornerRadius(10)
                     .padding(.horizontal, 16)
                     .padding(.top, 12)

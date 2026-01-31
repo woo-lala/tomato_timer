@@ -3,6 +3,7 @@ import SwiftUI
 
 struct NotificationModeSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.themePalette) private var theme
     
     // Routine data
     let routine: Routine
@@ -30,35 +31,35 @@ struct NotificationModeSheet: View {
         VStack(spacing: 0) {
             // Header
             VStack(alignment: .leading, spacing: AppSpacing.medium) {
-                Text("실행 방식")
+                Text("sheet.notificationMode.title")
                     .font(AppFont.title())
-                    .foregroundColor(AppColor.textPrimary)
+                    .foregroundColor(theme.textPrimary)
                 
                 // Quick Presets
                 HStack(spacing: 12) {
                     Button(action: loadBasicSettings) {
                         HStack(spacing: 6) {
                             Image(systemName: "gear")
-                            Text("기본값")
+                            Text("sheet.notificationMode.preset.basic")
                         }
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(AppColor.primary)
+                        .foregroundColor(theme.accent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
-                        .background(AppColor.primary.opacity(0.1))
+                        .background(theme.accent.opacity(0.1))
                         .cornerRadius(AppRadius.button)
                     }
                     
                     Button(action: loadLastUsedSettings) {
                         HStack(spacing: 6) {
                             Image(systemName: "clock")
-                            Text("이전 설정")
+                            Text("sheet.notificationMode.preset.previous")
                         }
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(AppColor.primary)
+                        .foregroundColor(theme.accent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
-                        .background(AppColor.primary.opacity(0.1))
+                        .background(theme.accent.opacity(0.1))
                         .cornerRadius(AppRadius.button)
                     }
                 }
@@ -70,21 +71,21 @@ struct NotificationModeSheet: View {
             VStack(spacing: 16) {
                 // Step Transition Mode
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("단계 진행 방식")
+                    Text("sheet.notificationMode.step.title")
                         .font(AppFont.callout())
-                        .foregroundColor(AppColor.textSecondary)
+                        .foregroundColor(theme.textSecondary)
                         .padding(.horizontal, AppSpacing.mediumPlus)
 
                     HStack(spacing: 12) {
                         transitionModeCard(
-                            title: "자동",
-                            subtitle: "바로 다음 단계로 시작",
+                            title: String(localized: "sheet.notificationMode.step.auto.title"),
+                            subtitle: String(localized: "sheet.notificationMode.step.auto.subtitle"),
                             systemImage: "arrow.triangle.2.circlepath",
                             mode: .auto
                         )
                         transitionModeCard(
-                            title: "수동",
-                            subtitle: "직접 다음 단계 시작",
+                            title: String(localized: "sheet.notificationMode.step.manual.title"),
+                            subtitle: String(localized: "sheet.notificationMode.step.manual.subtitle"),
                             systemImage: "play.circle",
                             mode: .manual
                         )
@@ -94,15 +95,15 @@ struct NotificationModeSheet: View {
 
                 // Notification Mode
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("알림 전달 방식")
+                    Text("sheet.notificationMode.alert.title")
                         .font(AppFont.callout())
-                        .foregroundColor(AppColor.textSecondary)
+                        .foregroundColor(theme.textSecondary)
                         .padding(.horizontal, AppSpacing.mediumPlus)
 
                     HStack(spacing: 10) {
-                        notificationModeButton(title: "소리", systemImage: "speaker.wave.2", mode: .sound)
-                        notificationModeButton(title: "진동", systemImage: "iphone.radiowaves.left.and.right", mode: .vibration)
-                        notificationModeButton(title: "소리 + 진동", systemImage: "bell.badge", mode: .soundAndVibration)
+                        notificationModeButton(title: String(localized: "notification.mode.sound"), systemImage: "speaker.wave.2", mode: .sound)
+                        notificationModeButton(title: String(localized: "notification.mode.vibration"), systemImage: "iphone.radiowaves.left.and.right", mode: .vibration)
+                        notificationModeButton(title: String(localized: "notification.mode.soundAndVibration"), systemImage: "bell.badge", mode: .soundAndVibration)
                     }
                     .padding(.horizontal, AppSpacing.mediumPlus)
                 }
@@ -111,19 +112,19 @@ struct NotificationModeSheet: View {
 
             // Start Button
             Button(action: startRoutine) {
-                Text("시작")
+                Text("sheet.notificationMode.start")
                     .font(AppFont.button())
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(canStart ? AppColor.primary : Color.gray)
+                    .background(canStart ? theme.accent : Color.gray)
                     .cornerRadius(AppRadius.button)
             }
             .disabled(!canStart)
             .padding(.horizontal, AppSpacing.mediumPlus)
             .padding(.bottom, AppSpacing.large)
         }
-        .background(Color(UIColor.systemGroupedBackground))
+        .background(theme.background)
         .onAppear {
             // Load last used by default? Users request: "Basic or Previous can be selected"
             // Let's load Last Used by default for convenience
@@ -177,22 +178,22 @@ struct NotificationModeSheet: View {
                 HStack(spacing: 8) {
                     Image(systemName: systemImage)
                         .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(isSelected ? AppColor.primary : AppColor.textSecondary)
+                        .foregroundColor(isSelected ? theme.accent : theme.textSecondary)
                     Text(title)
                     .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(AppColor.textPrimary)
+                        .foregroundColor(theme.textPrimary)
                 }
                 Text(subtitle)
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(AppColor.textSecondary)
+                    .foregroundColor(theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
             .padding(10)
-            .background(isSelected ? AppColor.primary.opacity(0.1) : Color.white)
+            .background(isSelected ? theme.accent.opacity(0.1) : theme.surface)
             .overlay(
                 RoundedRectangle(cornerRadius: AppRadius.button)
-                    .stroke(isSelected ? AppColor.primary : Color(UIColor.systemGray5), lineWidth: isSelected ? 2 : 1)
+                    .stroke(isSelected ? theme.accent : theme.border, lineWidth: isSelected ? 2 : 1)
             )
             .cornerRadius(AppRadius.button)
         }
@@ -201,6 +202,12 @@ struct NotificationModeSheet: View {
 
     private func notificationModeButton(title: String, systemImage: String, mode: NotificationMode) -> some View {
         let isSelected = selectedNotificationMode == mode
+        let displayTitle: String
+        if localeUsesEnglishLineBreak && mode == .soundAndVibration {
+            displayTitle = String(localized: "notification.mode.soundAndVibration.multiline")
+        } else {
+            displayTitle = title
+        }
         return Button(action: {
             switch mode {
             case .sound:
@@ -217,19 +224,27 @@ struct NotificationModeSheet: View {
             VStack(spacing: 8) {
                 Image(systemName: systemImage)
                     .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(isSelected ? AppColor.primary : AppColor.textSecondary)
-                Text(title)
+                    .foregroundColor(isSelected ? theme.accent : theme.textSecondary)
+                Text(displayTitle)
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(AppColor.textPrimary)
+                    .foregroundColor(theme.textPrimary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 6)
             }
-            .frame(maxWidth: .infinity, minHeight: 64)
-            .background(isSelected ? AppColor.primary.opacity(0.1) : Color.white)
+            .frame(maxWidth: .infinity, minHeight: 76)
+            .background(isSelected ? theme.accent.opacity(0.1) : theme.surface)
             .overlay(
                 RoundedRectangle(cornerRadius: AppRadius.button)
-                    .stroke(isSelected ? AppColor.primary : Color(UIColor.systemGray5), lineWidth: isSelected ? 2 : 1)
+                    .stroke(isSelected ? theme.accent : theme.border, lineWidth: isSelected ? 2 : 1)
             )
             .cornerRadius(AppRadius.button)
         }
         .buttonStyle(.plain)
+    }
+
+    private var localeUsesEnglishLineBreak: Bool {
+        guard let code = Locale.current.language.languageCode?.identifier else { return false }
+        return code == "en"
     }
 }

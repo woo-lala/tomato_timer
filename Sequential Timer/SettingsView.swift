@@ -6,6 +6,9 @@ struct SettingsView: View {
     @AppStorage("keepScreenOn") private var keepScreenOn = false
     @AppStorage("defaultNotificationSound") private var defaultSoundRaw: String = NotificationSound.default.rawValue
     @AppStorage("defaultNotificationVibration") private var defaultVibrationRaw: String = VibrationPattern.default.rawValue
+    @EnvironmentObject private var themeStore: ThemeStore
+    @EnvironmentObject private var languageStore: LanguageStore
+    @Environment(\.themePalette) private var theme
     
     
     var body: some View {
@@ -14,17 +17,14 @@ struct SettingsView: View {
                 // Content starts with first section
                 // Section 1: 타이머
                 VStack(spacing: 0) {
-                    SectionHeader(title: "타이머")
+                    SectionHeader(title: "settings.section.timer")
                         .padding(.horizontal, AppSpacing.mediumPlus)
                         .padding(.bottom, AppSpacing.small)
                     
                     VStack(spacing: 0) {
-                        ToggleRow(
-                            title: "타이머 실행 중 화면 켜짐 유지",
-                            isOn: $keepScreenOn
-                        )
+                        ToggleRow(title: "settings.keepScreenOn", isOn: $keepScreenOn)
                     }
-                    .background(Color.white)
+                    .background(theme.surface)
                     .cornerRadius(AppRadius.button)
                     .padding(.horizontal, AppSpacing.mediumPlus)
                 }
@@ -32,22 +32,22 @@ struct SettingsView: View {
 
                 // Section 2: 알림 기본값
                 VStack(spacing: 0) {
-                    SectionHeader(title: "알림 기본값")
+                    SectionHeader(title: "settings.section.notificationDefaults")
                         .padding(.horizontal, AppSpacing.mediumPlus)
                         .padding(.bottom, AppSpacing.small)
 
-                    Text("알림음과 진동 패턴은 앱이 켜져 있을 때만 적용돼요.")
+                    Text("settings.notification.help")
                         .font(AppFont.caption())
-                        .foregroundColor(AppColor.textSecondary)
+                        .foregroundColor(theme.textSecondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, AppSpacing.mediumPlus)
                         .padding(.bottom, AppSpacing.small)
 
                     VStack(spacing: 0) {
                         HStack {
-                            Text("알림음")
+                            Text("settings.notification.sound")
                                 .font(AppFont.body())
-                                .foregroundColor(AppColor.textPrimary)
+                                .foregroundColor(theme.textPrimary)
                             Spacer()
                             Menu {
                                 ForEach(NotificationSound.allCases, id: \.self) { sound in
@@ -56,20 +56,20 @@ struct SettingsView: View {
                                         AudioManager.shared.playSound(sound)
                                     }) {
                                         if NotificationSound(rawValue: defaultSoundRaw) == sound {
-                                            Label(sound.rawValue, systemImage: "checkmark")
+                                            Label(sound.displayName, systemImage: "checkmark")
                                         } else {
-                                            Text(sound.rawValue)
+                                            Text(sound.displayName)
                                         }
                                     }
                                 }
                             } label: {
                                 HStack(spacing: 6) {
-                                    Text(NotificationSound(rawValue: defaultSoundRaw)?.rawValue ?? NotificationSound.default.rawValue)
+                                    Text(NotificationSound(rawValue: defaultSoundRaw)?.displayName ?? NotificationSound.default.displayName)
                                         .font(AppFont.body())
-                                        .foregroundColor(AppColor.textSecondary)
+                                        .foregroundColor(theme.textSecondary)
                                     Image(systemName: "chevron.up.chevron.down")
                                         .font(.system(size: 12))
-                                        .foregroundColor(AppColor.textSecondary)
+                                        .foregroundColor(theme.textSecondary)
                                 }
                             }
                         }
@@ -79,9 +79,9 @@ struct SettingsView: View {
                         Divider().padding(.leading, AppSpacing.medium)
 
                         HStack {
-                            Text("진동 패턴")
+                            Text("settings.notification.vibration")
                                 .font(AppFont.body())
-                                .foregroundColor(AppColor.textPrimary)
+                                .foregroundColor(theme.textPrimary)
                             Spacer()
                             Menu {
                                 ForEach(VibrationPattern.allCases, id: \.self) { pattern in
@@ -90,54 +90,139 @@ struct SettingsView: View {
                                         HapticManager.shared.playVibration(pattern)
                                     }) {
                                         if VibrationPattern(rawValue: defaultVibrationRaw) == pattern {
-                                            Label(pattern.rawValue, systemImage: "checkmark")
+                                            Label(pattern.displayName, systemImage: "checkmark")
                                         } else {
-                                            Text(pattern.rawValue)
+                                            Text(pattern.displayName)
                                         }
                                     }
                                 }
                             } label: {
                                 HStack(spacing: 6) {
-                                    Text(VibrationPattern(rawValue: defaultVibrationRaw)?.rawValue ?? VibrationPattern.default.rawValue)
+                                    Text(VibrationPattern(rawValue: defaultVibrationRaw)?.displayName ?? VibrationPattern.default.displayName)
                                         .font(AppFont.body())
-                                        .foregroundColor(AppColor.textSecondary)
+                                        .foregroundColor(theme.textSecondary)
                                     Image(systemName: "chevron.up.chevron.down")
                                         .font(.system(size: 12))
-                                        .foregroundColor(AppColor.textSecondary)
+                                        .foregroundColor(theme.textSecondary)
                                 }
                             }
                         }
                         .padding(.horizontal, AppSpacing.medium)
                         .padding(.vertical, AppSpacing.smallPlus)
                     }
-                    .background(Color.white)
+                    .background(theme.surface)
                     .cornerRadius(AppRadius.button)
                     .padding(.horizontal, AppSpacing.mediumPlus)
                 }
                 .padding(.bottom, AppSpacing.large)
-                
-                // Section 3: 정보
+
+                // Section 3: 테마
                 VStack(spacing: 0) {
-                    SectionHeader(title: "정보")
+                    SectionHeader(title: "settings.section.theme")
+                        .padding(.horizontal, AppSpacing.mediumPlus)
+                        .padding(.bottom, AppSpacing.small)
+
+                    VStack(spacing: 0) {
+                        HStack {
+                            Text("settings.section.theme")
+                                .font(AppFont.body())
+                                .foregroundColor(theme.textPrimary)
+                            Spacer()
+                            Menu {
+                                ForEach(ThemeSelection.allCases) { option in
+                                    Button(action: {
+                                        themeStore.selection = option
+                                    }) {
+                                        if themeStore.selection == option {
+                                            Label(LocalizedStringKey(option.displayKey), systemImage: "checkmark")
+                                        } else {
+                                            Text(LocalizedStringKey(option.displayKey))
+                                        }
+                                    }
+                                }
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Text(LocalizedStringKey(themeStore.selection.displayKey))
+                                        .font(AppFont.body())
+                                        .foregroundColor(theme.textSecondary)
+                                    Image(systemName: "chevron.up.chevron.down")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(theme.textSecondary)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, AppSpacing.medium)
+                        .padding(.vertical, AppSpacing.smallPlus)
+                    }
+                    .background(theme.surface)
+                    .cornerRadius(AppRadius.button)
+                    .padding(.horizontal, AppSpacing.mediumPlus)
+                }
+                .padding(.bottom, AppSpacing.large)
+
+                // Section 4: 언어
+                VStack(spacing: 0) {
+                    SectionHeader(title: "settings.section.language")
+                        .padding(.horizontal, AppSpacing.mediumPlus)
+                        .padding(.bottom, AppSpacing.small)
+
+                    VStack(spacing: 0) {
+                        HStack {
+                            Text("settings.section.language")
+                                .font(AppFont.body())
+                                .foregroundColor(theme.textPrimary)
+                            Spacer()
+                            Menu {
+                                ForEach(LanguageSelection.allCases) { option in
+                                    Button(action: {
+                                        languageStore.selection = option
+                                    }) {
+                                        if languageStore.selection == option {
+                                            Label(LocalizedStringKey(option.displayKey), systemImage: "checkmark")
+                                        } else {
+                                            Text(LocalizedStringKey(option.displayKey))
+                                        }
+                                    }
+                                }
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Text(LocalizedStringKey(languageStore.selection.displayKey))
+                                        .font(AppFont.body())
+                                        .foregroundColor(theme.textSecondary)
+                                    Image(systemName: "chevron.up.chevron.down")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(theme.textSecondary)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, AppSpacing.medium)
+                        .padding(.vertical, AppSpacing.smallPlus)
+                    }
+                    .background(theme.surface)
+                    .cornerRadius(AppRadius.button)
+                    .padding(.horizontal, AppSpacing.mediumPlus)
+                }
+                .padding(.bottom, AppSpacing.large)
+
+                // Section 5: 정보
+                VStack(spacing: 0) {
+                    SectionHeader(title: "settings.section.info")
                         .padding(.horizontal, AppSpacing.mediumPlus)
                         .padding(.bottom, AppSpacing.small)
                     
                     VStack(spacing: 0) {
-                        StaticRow(
-                            title: "앱 버전",
-                            value: "1.0.0"
-                        )
+                        StaticRow(title: "settings.appVersion", value: "1.0.0")
                     }
-                    .background(Color.white)
+                    .background(theme.surface)
                     .cornerRadius(AppRadius.button)
                     .padding(.horizontal, AppSpacing.mediumPlus)
                 }
                 .padding(.bottom, 40)
             }
         }
-        .background(Color(UIColor.systemGroupedBackground).ignoresSafeArea(.all))
-        .preferredColorScheme(.light)
-        .navigationTitle("설정")
+        .id(languageStore.selection)
+        .background(theme.background.ignoresSafeArea(.all))
+        .navigationTitle("settings.title")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -145,27 +230,29 @@ struct SettingsView: View {
 // MARK: - Components
 
 struct SectionHeader: View {
-    let title: String
+    let title: LocalizedStringKey
+    @Environment(\.themePalette) private var theme
     
     var body: some View {
         HStack {
             Text(title)
                 .font(AppFont.callout())
-                .foregroundColor(AppColor.textPrimary)
+                .foregroundColor(theme.textPrimary)
             Spacer()
         }
     }
 }
 
 struct ToggleRow: View {
-    let title: String
+    let title: LocalizedStringKey
     @Binding var isOn: Bool
+    @Environment(\.themePalette) private var theme
     
     var body: some View {
         HStack {
             Text(title)
                 .font(AppFont.body())
-                .foregroundColor(AppColor.textPrimary)
+                .foregroundColor(theme.textPrimary)
             
             Spacer()
             
@@ -178,10 +265,11 @@ struct ToggleRow: View {
 }
 
 struct OptionRow: View {
-    let title: String
-    let value: String
+    let title: LocalizedStringKey
+    let value: LocalizedStringKey
     let isEnabled: Bool
     let action: () -> Void
+    @Environment(\.themePalette) private var theme
     
     var body: some View {
         Button(action: {
@@ -192,17 +280,17 @@ struct OptionRow: View {
             HStack {
                 Text(title)
                     .font(AppFont.body())
-                    .foregroundColor(isEnabled ? AppColor.textPrimary : AppColor.textSecondary)
+                    .foregroundColor(isEnabled ? theme.textPrimary : theme.textSecondary)
                 
                 Spacer()
                 
                 Text(value)
                     .font(AppFont.body())
-                    .foregroundColor(isEnabled ? AppColor.primary : AppColor.textSecondary)
+                    .foregroundColor(isEnabled ? theme.accent : theme.textSecondary)
                 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(AppColor.textSecondary)
+                    .foregroundColor(theme.textSecondary)
             }
             .padding(.horizontal, AppSpacing.medium)
             .padding(.vertical, AppSpacing.smallPlus)
@@ -212,18 +300,19 @@ struct OptionRow: View {
 }
 
 struct InfoRow: View {
-    let title: String
-    let description: String
+    let title: LocalizedStringKey
+    let description: LocalizedStringKey
+    @Environment(\.themePalette) private var theme
     
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(AppFont.body())
-                .foregroundColor(AppColor.textPrimary)
+                .foregroundColor(theme.textPrimary)
             
             Text(description)
                 .font(AppFont.caption())
-                .foregroundColor(AppColor.textSecondary)
+                .foregroundColor(theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -233,22 +322,23 @@ struct InfoRow: View {
 }
 
 struct LinkRow: View {
-    let title: String
+    let title: LocalizedStringKey
     let action: () -> Void
+    @Environment(\.themePalette) private var theme
     
     var body: some View {
         Button(action: action) {
             HStack {
-                Text(title)
-                    .font(AppFont.body())
-                    .foregroundColor(AppColor.primary)
+            Text(title)
+                .font(AppFont.body())
+                .foregroundColor(theme.accent)
                 
                 Spacer()
                 
-                Image(systemName: "arrow.up.right")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(AppColor.textSecondary)
-            }
+            Image(systemName: "arrow.up.right")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(theme.textSecondary)
+        }
             .padding(.horizontal, AppSpacing.medium)
             .padding(.vertical, AppSpacing.smallPlus)
         }
@@ -256,20 +346,21 @@ struct LinkRow: View {
 }
 
 struct StaticRow: View {
-    let title: String
+    let title: LocalizedStringKey
     let value: String
+    @Environment(\.themePalette) private var theme
     
     var body: some View {
         HStack {
             Text(title)
                 .font(AppFont.body())
-                .foregroundColor(AppColor.textPrimary)
+                .foregroundColor(theme.textPrimary)
             
             Spacer()
             
             Text(value)
                 .font(AppFont.body())
-                .foregroundColor(AppColor.textSecondary)
+                .foregroundColor(theme.textSecondary)
         }
         .padding(.horizontal, AppSpacing.medium)
         .padding(.vertical, AppSpacing.smallPlus)
@@ -278,4 +369,6 @@ struct StaticRow: View {
 
 #Preview {
     SettingsView()
+        .environmentObject(ThemeStore())
+        .environmentObject(LanguageStore())
 }
