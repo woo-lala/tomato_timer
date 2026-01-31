@@ -42,4 +42,14 @@
         <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <relationship name="session" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Session" inverseName="steps" inverseEntity="Session"/>
     </entity>
+    <entity name="UploadQueueItem" representedClassName="UploadQueueItem" syncable="YES" codeGenerationType="class">
+        <attribute name="itemId" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="type" optional="NO" attributeType="String"/>
+        <attribute name="entityId" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="status" optional="NO" attributeType="String"/>
+        <attribute name="createdAt" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="lastAttemptAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="attemptCount" optional="NO" attributeType="Integer 16" defaultValue="0" usesScalarValueType="YES"/>
+        <attribute name="payloadHash" optional="YES" attributeType="String"/>
+    </entity>
 </model>

@@ -6,7 +6,7 @@ struct PersistenceController {
     let container: NSPersistentContainer
 
     init(inMemory: Bool = false) {
-        let container = NSPersistentContainer(name: "TomatoTimer")
+        let container = NSPersistentContainer(name: "SequentialTimer")
         
         if inMemory {
             container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")

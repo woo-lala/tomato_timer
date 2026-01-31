@@ -368,12 +368,14 @@ struct TimerRunningView: View {
         let now = Date()
         hasSyncedOnce = false
         lastSyncedStepIndex = nil
+        var coreDataSessionId: UUID? = nil
         if routine.managedObjectContext != nil {
-            CoreDataManager.shared.createSession(for: routine, startedAt: now)
+            let session = CoreDataManager.shared.createSession(for: routine, startedAt: now)
+            coreDataSessionId = session.sessionId
             NotificationCenter.default.post(name: .sessionStarted, object: routine.routineId)
         }
         let newState = SessionState(
-            sessionId: UUID(),
+            sessionId: coreDataSessionId ?? UUID(),
             routineId: routineId,
             startAt: now,
             isPaused: false,
@@ -397,6 +399,10 @@ struct TimerRunningView: View {
         state.pausedAt = Date()
         sessionState = state
         SessionStore.save(state)
+        if let session = CoreDataManager.shared.fetchSession(by: state.sessionId) {
+            let nextPauseCount = session.pauseCount + 1
+            CoreDataManager.shared.updateSession(session, status: "PAUSED", pauseCount: nextPauseCount)
+        }
         cancelPendingNotifications(for: state.sessionId, stepCount: timeline.count)
         syncDisplay(now: Date())
     }
@@ -414,11 +420,17 @@ struct TimerRunningView: View {
         }
         sessionState = state
         SessionStore.save(state)
+        if let session = CoreDataManager.shared.fetchSession(by: state.sessionId) {
+            CoreDataManager.shared.updateSession(session, status: "RUNNING")
+        }
         scheduleNotifications(for: state)
     }
 
     private func stopSession() {
         guard let state = sessionState else { return }
+        if let session = CoreDataManager.shared.fetchSession(by: state.sessionId) {
+            CoreDataManager.shared.updateSession(session, endedAt: Date(), status: "ABANDONED")
+        }
         cancelPendingNotifications(for: state.sessionId, stepCount: timeline.count)
         sessionState = nil
         hasSyncedOnce = false
@@ -430,6 +442,9 @@ struct TimerRunningView: View {
 
     private func finishSession() {
         guard let state = sessionState else { return }
+        if let session = CoreDataManager.shared.fetchSession(by: state.sessionId) {
+            CoreDataManager.shared.updateSession(session, endedAt: Date(), status: "COMPLETED")
+        }
         hasSyncedOnce = false
         lastSyncedStepIndex = nil
         showManualNextAlert = false
