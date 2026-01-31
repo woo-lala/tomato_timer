@@ -134,7 +134,3 @@
 "settings.theme.darkCoral" = "Dark · Coral";
 "notification.mode.soundAndVibration.multiline" = "Sound\n+ Vibration";
 
-"settings.section.language" = "Language";
-"settings.language.system" = "System Default";
-"settings.language.korean" = "Korean";
-"settings.language.english" = "English";

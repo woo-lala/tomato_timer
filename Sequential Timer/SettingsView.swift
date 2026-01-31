@@ -7,7 +7,6 @@ struct SettingsView: View {
     @AppStorage("defaultNotificationSound") private var defaultSoundRaw: String = NotificationSound.default.rawValue
     @AppStorage("defaultNotificationVibration") private var defaultVibrationRaw: String = VibrationPattern.default.rawValue
     @EnvironmentObject private var themeStore: ThemeStore
-    @EnvironmentObject private var languageStore: LanguageStore
     @Environment(\.themePalette) private var theme
     
     
@@ -160,51 +159,7 @@ struct SettingsView: View {
                 }
                 .padding(.bottom, AppSpacing.large)
 
-                // Section 4: 언어
-                VStack(spacing: 0) {
-                    SectionHeader(title: "settings.section.language")
-                        .padding(.horizontal, AppSpacing.mediumPlus)
-                        .padding(.bottom, AppSpacing.small)
-
-                    VStack(spacing: 0) {
-                        HStack {
-                            Text("settings.section.language")
-                                .font(AppFont.body())
-                                .foregroundColor(theme.textPrimary)
-                            Spacer()
-                            Menu {
-                                ForEach(LanguageSelection.allCases) { option in
-                                    Button(action: {
-                                        languageStore.selection = option
-                                    }) {
-                                        if languageStore.selection == option {
-                                            Label(LocalizedStringKey(option.displayKey), systemImage: "checkmark")
-                                        } else {
-                                            Text(LocalizedStringKey(option.displayKey))
-                                        }
-                                    }
-                                }
-                            } label: {
-                                HStack(spacing: 6) {
-                                    Text(LocalizedStringKey(languageStore.selection.displayKey))
-                                        .font(AppFont.body())
-                                        .foregroundColor(theme.textSecondary)
-                                    Image(systemName: "chevron.up.chevron.down")
-                                        .font(.system(size: 12))
-                                        .foregroundColor(theme.textSecondary)
-                                }
-                            }
-                        }
-                        .padding(.horizontal, AppSpacing.medium)
-                        .padding(.vertical, AppSpacing.smallPlus)
-                    }
-                    .background(theme.surface)
-                    .cornerRadius(AppRadius.button)
-                    .padding(.horizontal, AppSpacing.mediumPlus)
-                }
-                .padding(.bottom, AppSpacing.large)
-
-                // Section 5: 정보
+                // Section 4: 정보
                 VStack(spacing: 0) {
                     SectionHeader(title: "settings.section.info")
                         .padding(.horizontal, AppSpacing.mediumPlus)
@@ -220,7 +175,6 @@ struct SettingsView: View {
                 .padding(.bottom, 40)
             }
         }
-        .id(languageStore.selection)
         .background(theme.background.ignoresSafeArea(.all))
         .navigationTitle("settings.title")
         .navigationBarTitleDisplayMode(.inline)
@@ -370,5 +324,4 @@ struct StaticRow: View {
 #Preview {
     SettingsView()
         .environmentObject(ThemeStore())
-        .environmentObject(LanguageStore())
 }

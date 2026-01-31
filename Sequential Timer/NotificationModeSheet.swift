@@ -1,9 +1,11 @@
 
 import SwiftUI
+import Foundation
 
 struct NotificationModeSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.themePalette) private var theme
+    @Environment(\.locale) private var locale
     
     // Routine data
     let routine: Routine
@@ -78,14 +80,14 @@ struct NotificationModeSheet: View {
 
                     HStack(spacing: 12) {
                         transitionModeCard(
-                            title: String(localized: "sheet.notificationMode.step.auto.title"),
-                            subtitle: String(localized: "sheet.notificationMode.step.auto.subtitle"),
+                            title: String(localized: "sheet.notificationMode.step.auto.title", locale: locale),
+                            subtitle: String(localized: "sheet.notificationMode.step.auto.subtitle", locale: locale),
                             systemImage: "arrow.triangle.2.circlepath",
                             mode: .auto
                         )
                         transitionModeCard(
-                            title: String(localized: "sheet.notificationMode.step.manual.title"),
-                            subtitle: String(localized: "sheet.notificationMode.step.manual.subtitle"),
+                            title: String(localized: "sheet.notificationMode.step.manual.title", locale: locale),
+                            subtitle: String(localized: "sheet.notificationMode.step.manual.subtitle", locale: locale),
                             systemImage: "play.circle",
                             mode: .manual
                         )
@@ -101,9 +103,9 @@ struct NotificationModeSheet: View {
                         .padding(.horizontal, AppSpacing.mediumPlus)
 
                     HStack(spacing: 10) {
-                        notificationModeButton(title: String(localized: "notification.mode.sound"), systemImage: "speaker.wave.2", mode: .sound)
-                        notificationModeButton(title: String(localized: "notification.mode.vibration"), systemImage: "iphone.radiowaves.left.and.right", mode: .vibration)
-                        notificationModeButton(title: String(localized: "notification.mode.soundAndVibration"), systemImage: "bell.badge", mode: .soundAndVibration)
+                        notificationModeButton(title: String(localized: "notification.mode.sound", locale: locale), systemImage: "speaker.wave.2", mode: .sound)
+                        notificationModeButton(title: String(localized: "notification.mode.vibration", locale: locale), systemImage: "iphone.radiowaves.left.and.right", mode: .vibration)
+                        notificationModeButton(title: String(localized: "notification.mode.soundAndVibration", locale: locale), systemImage: "bell.badge", mode: .soundAndVibration)
                     }
                     .padding(.horizontal, AppSpacing.mediumPlus)
                 }
@@ -204,7 +206,7 @@ struct NotificationModeSheet: View {
         let isSelected = selectedNotificationMode == mode
         let displayTitle: String
         if localeUsesEnglishLineBreak && mode == .soundAndVibration {
-            displayTitle = String(localized: "notification.mode.soundAndVibration.multiline")
+            displayTitle = String(localized: "notification.mode.soundAndVibration.multiline", locale: locale)
         } else {
             displayTitle = title
         }
@@ -226,7 +228,7 @@ struct NotificationModeSheet: View {
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(isSelected ? theme.accent : theme.textSecondary)
                 Text(displayTitle)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundColor(theme.textPrimary)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)

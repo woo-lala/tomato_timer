@@ -8,24 +8,21 @@
 import SwiftUI
 import CoreData
 import UserNotifications
+import Foundation
 
 @main
 struct Tomato_TimerApp: App {
     let persistenceController = PersistenceController.shared
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var themeStore = ThemeStore()
-    @StateObject private var languageStore = LanguageStore()
     
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .environmentObject(themeStore)
-                .environmentObject(languageStore)
                 .modifier(ThemeProvider(themeStore: themeStore))
                 .preferredColorScheme(themeStore.preferredColorScheme)
-                .environment(\.locale, languageStore.locale ?? Locale.autoupdatingCurrent)
-                .id(languageStore.selection)
         }
     }
 }

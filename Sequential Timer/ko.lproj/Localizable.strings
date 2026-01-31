@@ -134,7 +134,3 @@
 "settings.theme.darkCoral" = "다크 · 코럴";
 "notification.mode.soundAndVibration.multiline" = "소리 + 진동";
 
-"settings.section.language" = "언어";
-"settings.language.system" = "시스템 기본값";
-"settings.language.korean" = "한국어";
-"settings.language.english" = "영어";

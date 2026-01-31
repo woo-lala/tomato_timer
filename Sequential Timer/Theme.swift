@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import Foundation
 
 enum ThemeMode: String, CaseIterable {
     case light
@@ -27,45 +28,6 @@ enum ThemeSelection: String, CaseIterable, Identifiable {
         case .lightCoral: return "settings.theme.lightCoral"
         case .darkBlue: return "settings.theme.darkBlue"
         case .darkCoral: return "settings.theme.darkCoral"
-        }
-    }
-}
-
-enum LanguageSelection: String, CaseIterable, Identifiable {
-    case system
-    case korean
-    case english
-
-    var id: String { rawValue }
-
-    var displayKey: String {
-        switch self {
-        case .system: return "settings.language.system"
-        case .korean: return "settings.language.korean"
-        case .english: return "settings.language.english"
-        }
-    }
-}
-
-final class LanguageStore: ObservableObject {
-    let objectWillChange = ObservableObjectPublisher()
-    @AppStorage("app.language") private var selectionRaw: String = LanguageSelection.system.rawValue {
-        willSet { objectWillChange.send() }
-    }
-
-    var selection: LanguageSelection {
-        get { LanguageSelection(rawValue: selectionRaw) ?? .system }
-        set { selectionRaw = newValue.rawValue }
-    }
-
-    var locale: Locale? {
-        switch selection {
-        case .system:
-            return nil
-        case .korean:
-            return Locale(identifier: "ko")
-        case .english:
-            return Locale(identifier: "en")
         }
     }
 }

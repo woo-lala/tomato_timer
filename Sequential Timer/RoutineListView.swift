@@ -1,11 +1,12 @@
 
 import SwiftUI
 import CoreData
+import Foundation
 
 struct RoutineListView: View {
     @Environment(\.managedObjectContext) var managedObjectContext
     @Environment(\.themePalette) private var theme
-    @EnvironmentObject private var languageStore: LanguageStore
+    @Environment(\.locale) private var locale
     @FetchRequest(
         entity: Routine.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \Routine.createdAt, ascending: false)],
@@ -69,7 +70,7 @@ struct RoutineListView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    NavigationLink(destination: SettingsView().id(languageStore.selection)) {
+                    NavigationLink(destination: SettingsView()) {
                         Image(systemName: "gearshape")
                             .font(.system(size: 17, weight: .regular))
                             .foregroundColor(theme.textSecondary)
@@ -77,7 +78,6 @@ struct RoutineListView: View {
                 }
             }
         }
-        .id(languageStore.selection)
     }
 }
 
@@ -87,6 +87,7 @@ struct CDRoutineCard: View {
     let routine: Routine
     @Environment(\.managedObjectContext) var managedObjectContext
     @Environment(\.themePalette) private var theme
+    @Environment(\.locale) private var locale
     
     @Binding var refreshTrigger: UUID
     
@@ -106,22 +107,22 @@ struct CDRoutineCard: View {
         let remainingCount = max(sortedSteps.count - maxShown, 0)
         if remainingCount > 0 {
             let prefix = shownSteps.joined(separator: " · ")
-            return String(format: String(localized: "routine.list.steps.more"), prefix, remainingCount)
+            return String(format: String(localized: "routine.list.steps.more", locale: locale), prefix, remainingCount)
         }
         return shownSteps.joined(separator: " · ")
     }
 
     var lastRunDisplay: String {
         if let date = lastRunDate {
-            return String(format: String(localized: "routine.list.lastRun"), formatDate(date))
+            return String(format: String(localized: "routine.list.lastRun", locale: locale), formatDate(date))
         }
         if let createdAt = routine.createdAt {
-            return String(format: String(localized: "routine.list.createdAt"), formatDate(createdAt))
+            return String(format: String(localized: "routine.list.createdAt", locale: locale), formatDate(createdAt))
         }
         if let updatedAt = routine.updatedAt {
-            return String(format: String(localized: "routine.list.updatedAt"), formatDate(updatedAt))
+            return String(format: String(localized: "routine.list.updatedAt", locale: locale), formatDate(updatedAt))
         }
-        return String(localized: "routine.list.createdAt.none")
+        return String(localized: "routine.list.createdAt.none", locale: locale)
     }
 
     var lastRunDate: Date? {
@@ -135,11 +136,11 @@ struct CDRoutineCard: View {
                 VStack(alignment: .leading, spacing: 8) {
                     // Title and Time Steps
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(routine.name ?? String(localized: "app.routine.defaultName"))
+                        Text(routine.name ?? String(localized: "app.routine.defaultName", locale: locale))
                             .font(AppFont.headline())
                             .foregroundColor(theme.textPrimary)
                         
-                        Text(timeStepsDisplay.isEmpty ? String(localized: "routine.list.steps.none") : timeStepsDisplay)
+                        Text(timeStepsDisplay.isEmpty ? String(localized: "routine.list.steps.none", locale: locale) : timeStepsDisplay)
                             .font(AppFont.body())
                             .foregroundColor(theme.textSecondary)
                     }
@@ -235,20 +236,20 @@ struct CDRoutineCard: View {
         let secs = total % 60
         if hours > 0 {
             if minutes > 0 && secs > 0 {
-                return String(format: String(localized: "duration.compact.hms"), hours, minutes, secs)
+                return String(format: String(localized: "duration.compact.hms", locale: locale), hours, minutes, secs)
             }
             if minutes > 0 {
-                return String(format: String(localized: "duration.compact.hm"), hours, minutes)
+                return String(format: String(localized: "duration.compact.hm", locale: locale), hours, minutes)
             }
-            return String(format: String(localized: "duration.compact.hs"), hours, secs)
+            return String(format: String(localized: "duration.compact.hs", locale: locale), hours, secs)
         }
         if minutes > 0 && secs > 0 {
-            return String(format: String(localized: "duration.compact.ms"), minutes, secs)
+            return String(format: String(localized: "duration.compact.ms", locale: locale), minutes, secs)
         }
         if minutes > 0 {
-            return String(format: String(localized: "duration.compact.m"), minutes)
+            return String(format: String(localized: "duration.compact.m", locale: locale), minutes)
         }
-        return String(format: String(localized: "duration.compact.s"), secs)
+        return String(format: String(localized: "duration.compact.s", locale: locale), secs)
     }
 
     private func formatDate(_ date: Date) -> String {
@@ -261,6 +262,7 @@ struct CDRoutineCard: View {
 struct RoutineCard: View {
     let routine: Routine
     @Environment(\.themePalette) private var theme
+    @Environment(\.locale) private var locale
     @State private var showConfigSheet = false
     @State private var startTimer = false
     
@@ -269,7 +271,7 @@ struct RoutineCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 // Title and Time Steps
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(routine.name ?? String(localized: "app.routine.defaultName"))
+                    Text(routine.name ?? String(localized: "app.routine.defaultName", locale: locale))
                         .font(AppFont.headline())
                         .foregroundColor(theme.textPrimary)
                     

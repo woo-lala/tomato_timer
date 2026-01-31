@@ -11,6 +11,7 @@ struct TimerRunningView: View {
     @Environment(\.managedObjectContext) var managedObjectContext
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.themePalette) private var theme
+    @Environment(\.locale) private var locale
     
     let routine: Routine
     let initialConfiguration: NotificationConfiguration?
@@ -59,7 +60,7 @@ struct TimerRunningView: View {
     }
     
     var currentStepName: String {
-        guard currentStepIndex < timeline.count else { return String(localized: "timer.running.currentStep.default") }
+        guard currentStepIndex < timeline.count else { return String(localized: "timer.running.currentStep.default", locale: locale) }
         return timeline[currentStepIndex].name
     }
     
@@ -70,12 +71,12 @@ struct TimerRunningView: View {
         let minutes = next.durationSeconds / 60
         let seconds = next.durationSeconds % 60
         if minutes > 0 && seconds > 0 {
-            return String(format: String(localized: "timer.running.nextStep.full"), next.name, minutes, seconds)
+            return String(format: String(localized: "timer.running.nextStep.full", locale: locale), next.name, minutes, seconds)
         }
         if minutes > 0 {
-            return String(format: String(localized: "timer.running.nextStep.minutes"), next.name, minutes)
+            return String(format: String(localized: "timer.running.nextStep.minutes", locale: locale), next.name, minutes)
         }
-        return String(format: String(localized: "timer.running.nextStep.seconds"), next.name, seconds)
+        return String(format: String(localized: "timer.running.nextStep.seconds", locale: locale), next.name, seconds)
     }
 
     var displayStepIndex: Int {
@@ -142,7 +143,7 @@ struct TimerRunningView: View {
                             HStack(spacing: 8) {
                                 Image(systemName: "bell.fill")
                                     .foregroundColor(theme.textSecondary)
-                                Text(String(format: String(localized: "timer.running.executionMode"), transitionDisplayText, configDisplayText))
+                                Text(String(format: String(localized: "timer.running.executionMode", locale: locale), transitionDisplayText, configDisplayText))
                                     .font(.system(size: 14))
                                     .foregroundColor(theme.textSecondary)
                                 Spacer()
@@ -220,7 +221,7 @@ struct TimerRunningView: View {
                     .padding(.bottom, 20)
                 }
             }
-            .navigationTitle(routine.name ?? String(localized: "app.routine.defaultName"))
+            .navigationTitle(routine.name ?? String(localized: "app.routine.defaultName", locale: locale))
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(true)
             .toolbar {
@@ -457,11 +458,11 @@ struct TimerRunningView: View {
     private var primaryActionLabel: String {
         switch sessionState?.isPaused {
         case .some(false):
-            return String(localized: "common.pause")
+            return String(localized: "common.pause", locale: locale)
         case .some(true):
-            return String(localized: "common.resume")
+            return String(localized: "common.resume", locale: locale)
         default:
-            return String(localized: "common.start")
+            return String(localized: "common.start", locale: locale)
         }
     }
 
@@ -598,14 +599,14 @@ struct TimerRunningView: View {
                 let content = UNMutableNotificationContent()
                 let identifier: String
                 if item.index == timeline.count - 1 {
-                    content.title = String(localized: "notification.title.routineComplete")
-                    let routineName = routine.name ?? String(localized: "app.routine.defaultName")
-                    content.body = String(format: String(localized: "notification.body.routineComplete"), routineName)
+                    content.title = String(localized: "notification.title.routineComplete", locale: locale)
+                    let routineName = routine.name ?? String(localized: "app.routine.defaultName", locale: locale)
+                    content.body = String(format: String(localized: "notification.body.routineComplete", locale: locale), routineName)
                     identifier = completionNotificationIdentifier(sessionId: state.sessionId)
                 } else {
                     let nextName = timeline[item.index + 1].name
-                    content.title = String(localized: "notification.title.stepComplete")
-                    content.body = String(format: String(localized: "notification.body.stepComplete"), item.name, nextName)
+                    content.title = String(localized: "notification.title.stepComplete", locale: locale)
+                    content.body = String(format: String(localized: "notification.body.stepComplete", locale: locale), item.name, nextName)
                     identifier = notificationIdentifier(sessionId: state.sessionId, stepIndex: item.index)
                 }
                 content.sound = notificationSound(for: configuration)
@@ -620,14 +621,14 @@ struct TimerRunningView: View {
                 let content = UNMutableNotificationContent()
                 let identifier: String
                 if item.index == timeline.count - 1 {
-                    content.title = String(localized: "notification.title.routineComplete")
-                    let routineName = routine.name ?? String(localized: "app.routine.defaultName")
-                    content.body = String(format: String(localized: "notification.body.routineComplete"), routineName)
+                    content.title = String(localized: "notification.title.routineComplete", locale: locale)
+                    let routineName = routine.name ?? String(localized: "app.routine.defaultName", locale: locale)
+                    content.body = String(format: String(localized: "notification.body.routineComplete", locale: locale), routineName)
                     identifier = completionNotificationIdentifier(sessionId: state.sessionId)
                 } else {
                     let nextName = timeline[item.index + 1].name
-                    content.title = String(localized: "notification.title.stepComplete")
-                    content.body = String(format: String(localized: "notification.body.stepComplete"), item.name, nextName)
+                    content.title = String(localized: "notification.title.stepComplete", locale: locale)
+                    content.body = String(format: String(localized: "notification.body.stepComplete", locale: locale), item.name, nextName)
                     identifier = notificationIdentifier(sessionId: state.sessionId, stepIndex: item.index)
                 }
                 content.sound = notificationSound(for: configuration)
@@ -667,13 +668,13 @@ struct TimerRunningView: View {
             let fireAfter = TimeInterval(remaining) + (backgroundRepeatInterval * Double(offsetIndex))
             let content = UNMutableNotificationContent()
             if stepIndex == timeline.count - 1 {
-                content.title = String(localized: "notification.title.routineComplete")
-                let routineName = routine.name ?? String(localized: "app.routine.defaultName")
-                content.body = String(format: String(localized: "notification.body.routineComplete"), routineName)
+                content.title = String(localized: "notification.title.routineComplete", locale: locale)
+                let routineName = routine.name ?? String(localized: "app.routine.defaultName", locale: locale)
+                content.body = String(format: String(localized: "notification.body.routineComplete", locale: locale), routineName)
             } else {
                 let nextName = timeline[stepIndex + 1].name
-                content.title = String(localized: "notification.title.stepComplete")
-                content.body = String(format: String(localized: "notification.body.stepComplete"), timeline[stepIndex].name, nextName)
+                content.title = String(localized: "notification.title.stepComplete", locale: locale)
+                content.body = String(format: String(localized: "notification.body.stepComplete", locale: locale), timeline[stepIndex].name, nextName)
             }
             content.threadIdentifier = "seqtimer.repeat.\(state.sessionId.uuidString)"
             content.sound = notificationSound(for: configuration)
@@ -797,21 +798,21 @@ struct TimerRunningView: View {
     }
 
     private var manualAlertTitle: String {
-        String(localized: "timer.running.manualAlert.title")
+        String(localized: "timer.running.manualAlert.title", locale: locale)
     }
 
     private var manualAlertMessage: String {
         if isLastStep {
-            return String(localized: "timer.running.manualAlert.message.last")
+            return String(localized: "timer.running.manualAlert.message.last", locale: locale)
         }
-        return String(localized: "timer.running.manualAlert.message.next")
+        return String(localized: "timer.running.manualAlert.message.next", locale: locale)
     }
 
     private var manualAlertPrimaryLabel: String {
         if isLastStep {
-            return String(localized: "common.confirm")
+            return String(localized: "common.confirm", locale: locale)
         }
-        return String(localized: "common.startNow")
+        return String(localized: "common.startNow", locale: locale)
     }
 
     private var isLastStep: Bool {
@@ -907,11 +908,11 @@ struct TimerRunningView: View {
     var configDisplayText: String {
         switch configuration.mode {
         case .sound:
-            return String(localized: "notification.mode.sound")
+            return String(localized: "notification.mode.sound", locale: locale)
         case .vibration:
-            return String(localized: "notification.mode.vibration")
+            return String(localized: "notification.mode.vibration", locale: locale)
         case .soundAndVibration:
-            return String(localized: "notification.mode.soundAndVibration.compact")
+            return String(localized: "notification.mode.soundAndVibration.compact", locale: locale)
         }
     }
 
@@ -919,9 +920,9 @@ struct TimerRunningView: View {
         let mode = sessionState?.stepTransitionMode ?? initialStepTransitionMode
         switch mode {
         case .auto:
-            return String(localized: "transition.mode.auto")
+            return String(localized: "transition.mode.auto", locale: locale)
         case .manual:
-            return String(localized: "transition.mode.manual")
+            return String(localized: "transition.mode.manual", locale: locale)
         }
     }
 }
