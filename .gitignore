@@ -1,0 +1,9 @@
+# Xcode user data
+*.xcuserdatad/
+*.xcuserdata/
+
+# App image export folder
+Sequential Timer/Image/
+
+# macOS
+.DS_Store
