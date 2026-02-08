@@ -16,6 +16,7 @@ struct SequentialTimerApp: App {
     let persistenceController = PersistenceController.shared
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var themeStore = ThemeStore()
+    @Environment(\.scenePhase) private var scenePhase
     
     var body: some Scene {
         WindowGroup {
@@ -24,6 +25,11 @@ struct SequentialTimerApp: App {
                 .environmentObject(themeStore)
                 .modifier(ThemeProvider(themeStore: themeStore))
                 .preferredColorScheme(themeStore.preferredColorScheme)
+                .onChange(of: scenePhase) { _, newPhase in
+                    if newPhase == .active {
+                        SyncManager.shared.handleAppBecameActive()
+                    }
+                }
         }
     }
 }

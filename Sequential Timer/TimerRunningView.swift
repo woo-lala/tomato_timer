@@ -430,6 +430,11 @@ struct TimerRunningView: View {
         guard let state = sessionState else { return }
         if let session = CoreDataManager.shared.fetchSession(by: state.sessionId) {
             CoreDataManager.shared.updateSession(session, endedAt: Date(), status: "ABANDONED")
+            if let sessionId = session.sessionId {
+                SyncManager.shared.enqueueSession(sessionId: sessionId)
+            }
+        } else {
+            SyncManager.shared.enqueueSession(sessionId: state.sessionId)
         }
         cancelPendingNotifications(for: state.sessionId, stepCount: timeline.count)
         sessionState = nil
@@ -444,6 +449,11 @@ struct TimerRunningView: View {
         guard let state = sessionState else { return }
         if let session = CoreDataManager.shared.fetchSession(by: state.sessionId) {
             CoreDataManager.shared.updateSession(session, endedAt: Date(), status: "COMPLETED")
+            if let sessionId = session.sessionId {
+                SyncManager.shared.enqueueSession(sessionId: sessionId)
+            }
+        } else {
+            SyncManager.shared.enqueueSession(sessionId: state.sessionId)
         }
         hasSyncedOnce = false
         lastSyncedStepIndex = nil

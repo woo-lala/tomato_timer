@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2F8BAEB52F381E91004852C9 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 2F8BAEB42F381E91004852C9 /* FirebaseAuth */; };
+		2F8BAEB72F381E91004852C9 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 2F8BAEB62F381E91004852C9 /* FirebaseFirestore */; };
 		2FAACD862F2E0A6D00203C83 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 2FAACD852F2E0A6D00203C83 /* FirebaseAnalytics */; };
 /* End PBXBuildFile section */
 
@@ -28,6 +30,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				2FAACD862F2E0A6D00203C83 /* FirebaseAnalytics in Frameworks */,
+				2F8BAEB52F381E91004852C9 /* FirebaseAuth in Frameworks */,
+				2F8BAEB72F381E91004852C9 /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -71,6 +75,8 @@
 			name = "Sequential Timer";
 			packageProductDependencies = (
 				2FAACD852F2E0A6D00203C83 /* FirebaseAnalytics */,
+				2F8BAEB42F381E91004852C9 /* FirebaseAuth */,
+				2F8BAEB62F381E91004852C9 /* FirebaseFirestore */,
 			);
 			productName = "Sequential Timer";
 			productReference = 2F07862A2F1B614100D65B3C /* Sequential Timer.app */;
@@ -357,6 +363,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		2F8BAEB42F381E91004852C9 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2FAACD822F2E071A00203C83 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		2F8BAEB62F381E91004852C9 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2FAACD822F2E071A00203C83 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
 		2FAACD852F2E0A6D00203C83 /* FirebaseAnalytics */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 2FAACD822F2E071A00203C83 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;

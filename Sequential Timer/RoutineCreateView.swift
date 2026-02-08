@@ -344,6 +344,10 @@ struct RoutineCreateView: View {
         } catch {
             print("Failed to save routine: \(error)")
         }
+        if let routineId = targetRoutine.routineId {
+            let payloadHash = RoutinePayloadHasher.hash(for: targetRoutine)
+            SyncManager.shared.enqueueRoutine(routineId: routineId, payloadHash: payloadHash)
+        }
         dismiss()
     }
 
