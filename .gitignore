@@ -1,0 +1,24 @@
+# Xcode user data
+*.xcuserdatad/
+*.xcuserdata/
+*.xcuserstate
+**/xcshareddata/
+
+# App image export folder
+Sequential Timer/Image/
+
+# Firebase config (local)
+Sequential Timer/GoogleService-Info.plist
+**/GoogleService-Info.plist
+.firebaserc
+firebase.json
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+firestore.rules
+firestore.indexes.json
+storage.rules
+database.rules.json
+
+# macOS
+.DS_Store
