@@ -20,6 +20,40 @@
 "settings.notification.help" = "Sound and vibration patterns apply only while the app is open.";
 "settings.notification.sound" = "Sound";
 "settings.notification.vibration" = "Vibration Pattern";
+"settings.section.privacy" = "Privacy & Data";
+"settings.privacy.dataCollection" = "Privacy & Data Details";
+"settings.privacy.sheetTitle" = "Privacy & Data";
+"settings.privacy.dataCollection.title" = "Data Collection and Use";
+"settings.privacy.section1.title" = "1. Data Collected";
+"settings.privacy.section1.body" = "Sequential Timer is a timer app you can use without signing up. For service improvement, it may collect the following anonymous usage data.";
+"settings.privacy.section1.item1" = "Anonymous user identifier (Firebase Anonymous ID)";
+"settings.privacy.section1.item2" = "Routine info (routine name, number of steps, time for each step, archived status)";
+"settings.privacy.section1.item3" = "Timer usage summary (session start/end time, completed or stopped, number of steps, pause count, date)";
+"settings.privacy.section1.item4" = "No personally identifiable information such as name, email, phone number, or location is collected.";
+"settings.privacy.section2.title" = "2. Purpose of Collection";
+"settings.privacy.section2.body" = "Collected data is used only for:";
+"settings.privacy.section2.item1" = "Analyze timer and routine usage patterns";
+"settings.privacy.section2.item2" = "Improve app features and usability";
+"settings.privacy.section2.item3" = "Verify service stability";
+"settings.privacy.section2.item4" = "Not used for advertising, marketing, user tracking, or third-party sharing.";
+"settings.privacy.section3.title" = "3. How Data Is Collected";
+"settings.privacy.section3.body" = "The app works normally offline.";
+"settings.privacy.section3.item1" = "Data is stored locally (Core Data).";
+"settings.privacy.section3.item2" = "When network is available, only a summarized form is uploaded once per day.";
+"settings.privacy.section3.item3" = "Detailed timelines or per-second logs are not stored on servers.";
+"settings.privacy.section4.title" = "4. Retention Period";
+"settings.privacy.section4.body" = "Collected data is retained while it is needed for service improvement.";
+"settings.privacy.section4.item1" = "After app deletion, no further data is collected.";
+"settings.privacy.section4.item2" = "Data collected before deletion is used only within the improvement purpose.";
+"settings.privacy.section5.title" = "5. Third-Party Services";
+"settings.privacy.section5.body" = "Sequential Timer does not sell or provide collected data to third parties.";
+"settings.privacy.section5.item1" = "Google Firebase (Firestore, Anonymous Authentication) is used for data storage and management.";
+"settings.privacy.section5.item2" = "Firebase is used only within the scope of service operation.";
+"settings.privacy.section6.title" = "6. Protection Measures";
+"settings.privacy.section6.body" = "We take the following measures to protect privacy:";
+"settings.privacy.section6.item1" = "All data is stored by anonymous user identifier.";
+"settings.privacy.section6.item2" = "No personally identifiable information is stored.";
+"settings.privacy.section6.item3" = "Firebase security rules restrict per-user data access.";
 "settings.section.info" = "Info";
 "settings.appVersion" = "App Version";
 
@@ -133,4 +167,3 @@
 "settings.theme.darkBlue" = "Dark · Blue";
 "settings.theme.darkCoral" = "Dark · Coral";
 "notification.mode.soundAndVibration.multiline" = "Sound\n+ Vibration";
-

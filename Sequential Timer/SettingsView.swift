@@ -8,6 +8,7 @@ struct SettingsView: View {
     @AppStorage("defaultNotificationVibration") private var defaultVibrationRaw: String = VibrationPattern.default.rawValue
     @EnvironmentObject private var themeStore: ThemeStore
     @Environment(\.themePalette) private var theme
+    @State private var isPrivacyInfoPresented = false
     
     
     var body: some View {
@@ -159,7 +160,24 @@ struct SettingsView: View {
                 }
                 .padding(.bottom, AppSpacing.large)
 
-                // Section 4: 정보
+                // Section 4: 개인정보
+                VStack(spacing: 0) {
+                    SectionHeader(title: "settings.section.privacy")
+                        .padding(.horizontal, AppSpacing.mediumPlus)
+                        .padding(.bottom, AppSpacing.small)
+
+                    VStack(spacing: 0) {
+                        LinkRow(title: "settings.privacy.dataCollection", systemImage: "arrow.up.right.square") {
+                            isPrivacyInfoPresented = true
+                        }
+                    }
+                    .background(theme.surface)
+                    .cornerRadius(AppRadius.button)
+                    .padding(.horizontal, AppSpacing.mediumPlus)
+                }
+                .padding(.bottom, AppSpacing.large)
+
+                // Section 5: 정보
                 VStack(spacing: 0) {
                     SectionHeader(title: "settings.section.info")
                         .padding(.horizontal, AppSpacing.mediumPlus)
@@ -178,6 +196,9 @@ struct SettingsView: View {
         .background(theme.background.ignoresSafeArea(.all))
         .navigationTitle("settings.title")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $isPrivacyInfoPresented) {
+            PrivacyInfoSheet()
+        }
     }
 }
 
@@ -277,6 +298,7 @@ struct InfoRow: View {
 
 struct LinkRow: View {
     let title: LocalizedStringKey
+    let systemImage: String
     let action: () -> Void
     @Environment(\.themePalette) private var theme
     
@@ -287,14 +309,140 @@ struct LinkRow: View {
                 .font(AppFont.body())
                 .foregroundColor(theme.accent)
                 
-                Spacer()
-                
-            Image(systemName: "arrow.up.right")
+            Image(systemName: systemImage)
                 .font(.system(size: 14, weight: .medium))
-                .foregroundColor(theme.textSecondary)
+                .foregroundColor(theme.accent)
+                
+                Spacer()
         }
             .padding(.horizontal, AppSpacing.medium)
             .padding(.vertical, AppSpacing.smallPlus)
+        }
+    }
+}
+
+struct PrivacyInfoSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.themePalette) private var theme
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppSpacing.large) {
+                    Text("settings.privacy.dataCollection.title")
+                        .font(AppFont.heading())
+                        .foregroundColor(theme.textPrimary)
+
+                    PrivacySection(
+                        title: "settings.privacy.section1.title",
+                        description: "settings.privacy.section1.body",
+                        items: [
+                            "settings.privacy.section1.item1",
+                            "settings.privacy.section1.item2",
+                            "settings.privacy.section1.item3",
+                            "settings.privacy.section1.item4"
+                        ]
+                    )
+
+                    PrivacySection(
+                        title: "settings.privacy.section2.title",
+                        description: "settings.privacy.section2.body",
+                        items: [
+                            "settings.privacy.section2.item1",
+                            "settings.privacy.section2.item2",
+                            "settings.privacy.section2.item3",
+                            "settings.privacy.section2.item4"
+                        ]
+                    )
+
+                    PrivacySection(
+                        title: "settings.privacy.section3.title",
+                        description: "settings.privacy.section3.body",
+                        items: [
+                            "settings.privacy.section3.item1",
+                            "settings.privacy.section3.item2",
+                            "settings.privacy.section3.item3"
+                        ]
+                    )
+
+                    PrivacySection(
+                        title: "settings.privacy.section4.title",
+                        description: "settings.privacy.section4.body",
+                        items: [
+                            "settings.privacy.section4.item1",
+                            "settings.privacy.section4.item2"
+                        ]
+                    )
+
+                    PrivacySection(
+                        title: "settings.privacy.section5.title",
+                        description: "settings.privacy.section5.body",
+                        items: [
+                            "settings.privacy.section5.item1",
+                            "settings.privacy.section5.item2"
+                        ]
+                    )
+
+                    PrivacySection(
+                        title: "settings.privacy.section6.title",
+                        description: "settings.privacy.section6.body",
+                        items: [
+                            "settings.privacy.section6.item1",
+                            "settings.privacy.section6.item2",
+                            "settings.privacy.section6.item3"
+                        ]
+                    )
+
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(AppSpacing.mediumPlus)
+            }
+            .background(theme.background.ignoresSafeArea(.all))
+            .navigationTitle("settings.privacy.sheetTitle")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { dismiss() }) {
+                        Text("common.done")
+                            .font(AppFont.body())
+                            .foregroundColor(theme.accent)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct PrivacySection: View {
+    let title: LocalizedStringKey
+    let description: LocalizedStringKey
+    let items: [LocalizedStringKey]
+    @Environment(\.themePalette) private var theme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.small) {
+            Text(title)
+                .font(AppFont.callout())
+                .foregroundColor(theme.textPrimary)
+
+            Text(description)
+                .font(AppFont.body())
+                .foregroundColor(theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(Array(items.enumerated()), id: \.offset) { _, key in
+                    HStack(alignment: .top, spacing: 8) {
+                        Text("•")
+                            .font(AppFont.body())
+                            .foregroundColor(theme.textSecondary)
+                        Text(key)
+                            .font(AppFont.body())
+                            .foregroundColor(theme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
         }
     }
 }

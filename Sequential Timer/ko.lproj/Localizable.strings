@@ -20,6 +20,40 @@
 "settings.notification.help" = "알림음과 진동 패턴은 앱이 켜져 있을 때만 적용돼요.";
 "settings.notification.sound" = "알림음";
 "settings.notification.vibration" = "진동 패턴";
+"settings.section.privacy" = "개인정보 및 데이터";
+"settings.privacy.dataCollection" = "개인정보 및 데이터 안내";
+"settings.privacy.sheetTitle" = "개인정보 및 데이터";
+"settings.privacy.dataCollection.title" = "개인정보 수집 및 이용 안내";
+"settings.privacy.section1.title" = "1. 수집하는 데이터";
+"settings.privacy.section1.body" = "순차타이머는 회원가입 없이 사용할 수 있는 타이머 앱입니다. 서비스 개선을 위해 아래와 같은 익명 사용 데이터를 수집할 수 있습니다.";
+"settings.privacy.section1.item1" = "익명 사용자 식별자(Firebase Anonymous ID)";
+"settings.privacy.section1.item2" = "루틴 정보(루틴 이름, 단계 수, 각 단계의 시간, 아카이브 여부)";
+"settings.privacy.section1.item3" = "타이머 사용 기록 요약(세션 시작·종료 시각, 완료/중단 여부, 단계 수, 일시정지 횟수, 날짜)";
+"settings.privacy.section1.item4" = "이름, 이메일, 전화번호, 위치 정보 등 개인 식별 정보는 수집하지 않습니다.";
+"settings.privacy.section2.title" = "2. 데이터 수집 목적";
+"settings.privacy.section2.body" = "수집된 데이터는 다음 목적에만 사용됩니다.";
+"settings.privacy.section2.item1" = "타이머 및 루틴 사용 패턴 분석";
+"settings.privacy.section2.item2" = "앱 기능 개선 및 사용성 향상";
+"settings.privacy.section2.item3" = "서비스 안정성 확인";
+"settings.privacy.section2.item4" = "광고, 마케팅, 사용자 추적, 제3자 제공 목적으로 사용하지 않습니다.";
+"settings.privacy.section3.title" = "3. 데이터 수집 방식";
+"settings.privacy.section3.body" = "앱은 오프라인 환경에서도 정상적으로 동작합니다.";
+"settings.privacy.section3.item1" = "데이터는 로컬(Core Data)에 저장됩니다.";
+"settings.privacy.section3.item2" = "네트워크 가능 시 하루 1회 요약 형태로만 업로드됩니다.";
+"settings.privacy.section3.item3" = "세션의 상세 타임라인이나 초 단위 기록은 서버에 저장하지 않습니다.";
+"settings.privacy.section4.title" = "4. 데이터 보관 및 이용 기간";
+"settings.privacy.section4.body" = "수집된 데이터는 서비스 개선 목적이 유지되는 동안 보관됩니다.";
+"settings.privacy.section4.item1" = "사용자가 앱을 삭제하면 이후 추가적인 데이터는 수집되지 않습니다.";
+"settings.privacy.section4.item2" = "삭제 전 수집된 데이터는 서비스 개선 목적 범위 내에서만 이용됩니다.";
+"settings.privacy.section5.title" = "5. 제3자 제공 및 외부 서비스 이용";
+"settings.privacy.section5.body" = "순차타이머는 수집된 데이터를 외부에 판매하거나 제3자에게 제공하지 않습니다.";
+"settings.privacy.section5.item1" = "데이터 저장·관리를 위해 Google Firebase(Firestore, Anonymous Authentication)를 사용합니다.";
+"settings.privacy.section5.item2" = "Firebase는 서비스 운영 목적 범위 내에서만 이용됩니다.";
+"settings.privacy.section6.title" = "6. 개인정보 보호를 위한 조치";
+"settings.privacy.section6.body" = "개인정보 보호를 위해 다음과 같은 조치를 취하고 있습니다.";
+"settings.privacy.section6.item1" = "모든 데이터는 익명 사용자 식별자 기준으로 저장됩니다.";
+"settings.privacy.section6.item2" = "개인을 식별할 수 있는 정보는 저장하지 않습니다.";
+"settings.privacy.section6.item3" = "Firebase 보안 규칙을 통해 사용자별 데이터 접근을 제한합니다.";
 "settings.section.info" = "정보";
 "settings.appVersion" = "앱 버전";
 
@@ -133,4 +167,3 @@
 "settings.theme.darkBlue" = "다크 · 블루";
 "settings.theme.darkCoral" = "다크 · 코럴";
 "notification.mode.soundAndVibration.multiline" = "소리 + 진동";
-
