@@ -1,0 +1,136 @@
+"app.routine.defaultName" = "Routine";
+"app.step.defaultName" = "Task";
+
+"common.confirm" = "OK";
+"common.start" = "Start";
+"common.startNow" = "Start";
+"common.later" = "Later";
+"common.done" = "Done";
+"common.save" = "Save";
+"common.delete" = "Delete";
+"common.stop" = "Stop";
+"common.skip" = "Skip";
+"common.pause" = "Pause";
+"common.resume" = "Resume";
+
+"settings.title" = "Settings";
+"settings.section.timer" = "Timer";
+"settings.keepScreenOn" = "Keep screen on during timer";
+"settings.section.notificationDefaults" = "Notification Defaults";
+"settings.notification.help" = "Sound and vibration patterns apply only while the app is open.";
+"settings.notification.sound" = "Sound";
+"settings.notification.vibration" = "Vibration Pattern";
+"settings.section.info" = "Info";
+"settings.appVersion" = "App Version";
+
+"routine.list.title" = "My Routines";
+"routine.list.empty" = "No routines yet.";
+"routine.list.add" = "Add Routine";
+"routine.list.lastRun" = "Last run: %@";
+"routine.list.createdAt" = "Created: %@";
+"routine.list.updatedAt" = "Updated: %@";
+"routine.list.createdAt.none" = "Created: None";
+"routine.list.steps.none" = "No steps";
+"routine.list.steps.more" = "%@  +%d more";
+
+"routine.detail.title.name" = "Routine Name";
+"routine.detail.title.createdAt" = "Created At";
+"routine.detail.steps.title" = "Steps (%d)";
+"routine.detail.steps.empty" = "No steps";
+
+"routine.create.title.new" = "Create Routine";
+"routine.create.title.edit" = "Edit Routine";
+"routine.create.name.label" = "Routine Name";
+"routine.create.name.placeholder" = "New routine";
+"routine.create.template.toggle" = "Save as template";
+"routine.create.template.section" = "Template Routines";
+"routine.create.step.section" = "Step List";
+"routine.create.step.empty" = "Add at least one step to create a routine.";
+"routine.create.step.add" = "Add Step";
+"routine.create.alert.title" = "Check Input";
+"routine.create.validation.name" = "Please enter a routine name.";
+"routine.create.validation.steps" = "Please add at least one step.";
+"routine.create.validation.stepName" = "Please enter a step name.";
+"routine.create.validation.duration" = "Please enter a duration of at least 00:00:00.";
+"routine.create.stepName.placeholder" = "Step name";
+"routine.create.time.title" = "Set Time";
+"routine.create.time.hours" = "Hours";
+"routine.create.time.minutes" = "Minutes";
+"routine.create.time.seconds" = "Seconds";
+
+"template.commute.name" = "Commute Routine";
+"template.commute.step.prepare" = "Get Ready";
+"template.commute.step.move" = "Commute";
+"template.commute.step.arrive" = "Arrive";
+"template.class.name" = "Class Routine";
+"template.class.step.lesson1" = "Class 1";
+"template.class.step.break" = "Break";
+"template.class.step.lesson2" = "Class 2";
+"template.class.step.cleanup" = "Wrap Up";
+
+"sheet.notificationMode.title" = "Execution Mode";
+"sheet.notificationMode.preset.basic" = "Default";
+"sheet.notificationMode.preset.previous" = "Previous";
+"sheet.notificationMode.step.title" = "Step Progress";
+"sheet.notificationMode.step.auto.title" = "Auto";
+"sheet.notificationMode.step.auto.subtitle" = "Start next step immediately";
+"sheet.notificationMode.step.manual.title" = "Manual";
+"sheet.notificationMode.step.manual.subtitle" = "Start next step manually";
+"sheet.notificationMode.alert.title" = "Notification Delivery";
+"sheet.notificationMode.start" = "Start";
+
+"notification.mode.sound" = "Sound";
+"notification.mode.vibration" = "Vibration";
+"notification.mode.soundAndVibration" = "Sound + Vibration";
+"notification.mode.soundAndVibration.compact" = "Sound+Vibration";
+"transition.mode.auto" = "Auto";
+"transition.mode.manual" = "Manual";
+
+"timer.running.keepScreenOn" = "Keep Screen On";
+"timer.running.executionMode" = "Execution mode: %@/%@";
+"timer.running.finishAlert.title" = "End Routine";
+"timer.running.finishAlert.message" = "All steps completed!";
+"timer.running.autoAdvanceAlert.title" = "Step Complete";
+"timer.running.autoAdvanceAlert.message" = "Moving to the next step.";
+"timer.running.manualAlert.title" = "Step Complete";
+"timer.running.manualAlert.message.last" = "All steps completed.";
+"timer.running.manualAlert.message.next" = "Move to the next step?";
+"timer.running.nextStep.full" = "Next: %@ (%dm %ds)";
+"timer.running.nextStep.minutes" = "Next: %@ (%dm)";
+"timer.running.nextStep.seconds" = "Next: %@ (%ds)";
+"timer.running.lastStep" = "Final step";
+"timer.running.currentStep.default" = "Task";
+
+"notification.title.routineComplete" = "Routine Complete";
+"notification.body.routineComplete" = "%@ is complete.";
+"notification.title.stepComplete" = "Step Complete";
+"notification.body.stepComplete" = "%@ complete. Next: %@";
+
+"duration.long.hms" = "%dh %dm %ds";
+"duration.long.ms" = "%dm %ds";
+"duration.long.s" = "%ds";
+
+"duration.compact.hms" = "%dh %dm %ds";
+"duration.compact.hm" = "%dh %dm";
+"duration.compact.hs" = "%dh %ds";
+"duration.compact.ms" = "%dm %ds";
+"duration.compact.m" = "%dm";
+"duration.compact.s" = "%ds";
+
+"notification.sound.default" = "Default";
+"notification.sound.short" = "Short";
+"notification.sound.soft" = "Soft";
+
+"notification.vibration.default" = "Default";
+"notification.vibration.short" = "Short";
+"notification.vibration.double" = "Double";
+"notification.vibration.heavy" = "Heavy";
+
+"settings.section.theme" = "Theme";
+"settings.theme.system" = "System Default";
+"settings.theme.lightBlue" = "Light · Blue";
+"settings.theme.lightCoral" = "Light · Coral";
+"settings.theme.darkBlue" = "Dark · Blue";
+"settings.theme.darkCoral" = "Dark · Coral";
+"notification.mode.soundAndVibration.multiline" = "Sound\n+ Vibration";
+

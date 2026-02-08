@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  Tomato Timer
+//  Sequential Timer
 //
 //  Created by woolala on 1/17/26.
 //
