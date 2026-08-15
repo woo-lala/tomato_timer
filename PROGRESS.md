@@ -11,7 +11,7 @@
 
 | 항목 | 값 |
 |---|---|
-| VCS | GitHub [`woo-lala/sequential_timer`](https://github.com/woo-lala/sequential_timer) 연결 (2026-08-15). 현재 브랜치 `feature/app-frontend-ui` — 원격 커밋 33개, `main`보다 1커밋 앞섬(개인정보 시트 `b84e9de` 미병합) |
+| VCS | GitHub [`woo-lala/sequential_timer`](https://github.com/woo-lala/sequential_timer). 기준 브랜치 `main` (`b244327`) — 2026-08-15 PR #3 병합으로 개인정보 시트와 문서가 모두 반영됨 |
 | 빌드 | ✅ 성공 (2026-08-15 확인, Xcode 26.5 / Build 17F42) |
 | 테스트 | ❌ 테스트 타겟 없음 |
 | 타겟 | `Sequential Timer` 단일, iOS 26.0, `com.ner.sequentialtimer` |
@@ -25,7 +25,8 @@ xcodebuild -project "Sequential Timer.xcodeproj" -scheme "Sequential Timer" \
   -destination 'generic/platform=iOS Simulator' build
 ```
 
-> 2026-08-15에 기존 GitHub 저장소와 연결했다. 로컬 코드는 원격 `feature/app-frontend-ui`(`b84e9de`, 2026-02-08)와 **바이트 단위로 동일**했으므로 코드 손실 없이 그 위로 올라탔다.
+> 2026-08-15에 기존 GitHub 저장소와 연결했다. 로컬 코드는 원격 `feature/app-frontend-ui`(`b84e9de`, 2026-02-08)와 **바이트 단위로 동일**했으므로 코드 손실 없이 그 위로 올라탔고, PR #3으로 `main`에 병합했다. 2026-02-08 이후 6개월간 병합되지 않았던 개인정보 설정 화면도 이때 함께 들어갔다.
+> 병합이 끝난 `feature/app-frontend-ui`는 원격에 남아 있다(삭제 여부 미결). 새 작업은 `main`에서 브랜치를 따서 진행한다.
 > **`GoogleService-Info.plist`는 저장소 `.gitignore`가 제외한다**(원격 히스토리에 한 번도 커밋된 적 없음). 로컬 파일은 빌드에 필요하니 지우지 말 것. CLAUDE.md의 "committed" 표현은 "앱 폴더에 존재한다"는 뜻으로 읽어야 한다.
 > `.vscode/settings.json`, `xcuserstate`, `xcschememanagement.plist`는 ignore 규칙 추가 **이전에** 커밋돼 아직 추적 중이다. 정리하려면 별도 커밋이 필요하다.
 
@@ -146,7 +147,7 @@ xcodebuild -project "Sequential Timer.xcodeproj" -scheme "Sequential Timer" \
 
 ## 6. 다음 세션 제안 순서
 
-1. ~~버전 관리 확보~~ ✅ 2026-08-15 완료 — 기존 GitHub 저장소 연결, `feature/app-frontend-ui` 기준. 이어서 이 브랜치를 `main`에 병합할지 결정할 것(PR)
+1. ~~버전 관리 확보~~ ✅ 2026-08-15 완료 — GitHub 저장소 연결 + PR #3 `main` 병합 (`b244327`)
 2. **4.0 `finishSession`에 `sessionState = nil` 추가** — 한 줄, 데이터 오염이 계속되는 중이라 최우선
 3. 4.2 동기화 재시도 로직 수정 (사용자 데이터 유실 위험 없음, 효과 큼)
 4. 4.10 정지·완료 시 반복 알림음 취소 (한 줄, 체감 큰 버그)
