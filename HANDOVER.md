@@ -4,6 +4,54 @@
 
 ---
 
+## 2026-08-22
+
+### 완료된 작업
+
+`audit-report-2026-08-15.md` Top 5 중 **1·2·4번(PROGRESS 4.0 / 4.2 / 4.10)** 을 수정했다. 브랜치 `fix/session-lifecycle-and-sync`.
+
+| 커밋 | 항목 | 파일 | 내용 |
+|---|---|---|---|
+| `5f21f11` | 4.0 | `TimerRunningView.swift` | `finishSession`에 `sessionState = nil` 추가. `onReceive` 가드(`sessionState?.isPaused == false`)가 `nil`에서 거짓이 되어 `syncDisplay → finishSession` 매초 재진입이 끊긴다. 알림 취소 호출도 `stopSession`과 같은 순서로 정렬 |
+| `e1bf17a` | 4.10 | `TimerRunningView.swift` | `stopSession` / `finishSession`에 `cancelManualAlertNotifications()` 추가 |
+| `f732265` | 4.2 | `Sync/SyncManager.swift` | `recordSyncAttempt`를 `ensureAuth` 성공 분기 안으로 이동 |
+
+세 건 모두 **작업 시작 시점에 4.0 수정이 `main` 작업 트리에 커밋되지 않은 채 남아 있었다.** 새 브랜치를 따서 그 변경을 옮긴 뒤 나머지 둘을 얹었다.
+
+설계 판단 두 가지를 기록해 둔다.
+
+- **4.2에서 기록 시점을 `flushQueue` 완료가 아니라 `ensureAuth` 성공으로 잡았다.** `flushQueue`의 completion은 개별 업로드 실패와 무관하게 호출돼 두 시점이 사실상 동등한데, 인증 성공 시점을 쓰면 백엔드가 계속 에러를 낼 때 매 활성화마다 flush를 반복하는 상황을 피할 수 있다. 실패 항목은 `markFailed`로 큐에 남아 다음 날 재시도된다.
+- **4.10에서 `startNextStepFromManualAlert`(859줄)의 기존 취소 호출을 제거하지 않았다.** 바로 뒤 `finishSession`과 중복이 되지만 `DispatchWorkItem.cancel()`은 멱등이라 무해하고, diff를 줄이는 쪽을 택했다.
+
+### 현재 상태
+
+- **빌드 ✅** — `generic/platform=iOS Simulator`, `platform=iOS Simulator,name=iPhone 17` 양쪽 `** BUILD SUCCEEDED **`. iPhone 17 시뮬레이터에 설치·실행해 **기동 크래시가 없는 것까지 확인**(pid 살아 있음).
+- **⚠️ UI 수동 검증은 하지 않았다.** 아래 4건은 다음 세션에서 사람이 직접 확인해야 한다. 컴파일과 기동만으로는 이 세 수정의 효과를 증명할 수 없다.
+  1. **4.0** — 짧은 루틴을 auto 모드로 완료 → 완료 알럿을 **30초 이상 방치** 후 확인 탭 → `Session.endedAt`에 그 30초가 더해지지 않는지.
+  2. **4.0 부수 확인** — `sessionState = nil` 이후 `primaryActionLabel`/`primaryActionIconName`이 "시작"/`play.fill`로 바뀐다. 완료 알럿이 모달이라 탭이 막히는 게 맞는지 눈으로 확인할 것. 만약 탭이 된다면 `handlePrimaryAction`이 `startSession()`을 호출해 **새 세션이 시작된다**. 알럿 버튼이 `dismiss()`뿐이라 문제 없을 것으로 보이나 미확인.
+  3. **4.2** — 비행기 모드에서 백그라운드↔포그라운드 전환 후, 해제하고 다시 전환 → 두 번째에 실제로 동기화가 시도되는지. `UserDefaults`의 `seqtimer.sync.lastSyncAttemptDate` 확인.
+  4. **4.10** — manual 모드 단계 종료 알럿음이 울리는 도중 정지 → 소리가 즉시 멎는지(수정 전 최대 ~9초 잔류).
+- **푸시·PR 미완.** 브랜치는 로컬에만 있다.
+- 앱 코드 외 변경: `PROGRESS.md` 갱신(4.0·4.2·4.10 해결 표시, 4.13 신규, §6 큐 갱신), 이 문서.
+
+### 다음 우선순위 작업
+
+1. **위 UI 수동 검증 4건** — 이게 끝나야 PR을 올릴 수 있다.
+2. **4.9 + 4.4 알림음 선택 방향 결정** — 2026-08-22 시점에도 **미정**. 리소스(`short_alert`, `soft_chime`)를 추가할지, 사운드 선택 UI를 제거할지 제품 결정이 선행돼야 코드를 건드릴 수 있다.
+3. 이후는 PROGRESS.md §6의 6번(저위험 정리: 4.7 앱 버전, 5장 데드 코드) → 7번(테스트 타겟) 순서 그대로.
+
+### 실패했던 접근과 이유 (반복 방지)
+
+- **`sed`로 `cancelPendingNotifications(...)` 줄을 패턴 치환하려 하면 안 된다.** 동일한 줄이 6곳(`406·439·458·563·670·903`)에 있어 전역 치환은 `pauseSession`과 `handleManualAlertLater`까지 오염시킨다. 줄 번호를 `grep -n`으로 먼저 확인하고 **큰 번호부터 내림차순으로** 삽입할 것(번호 밀림 방지).
+
+### 확인 필요한 열린 질문
+
+2026-08-15 세션의 열린 질문 1·2·3·4는 **그대로 미해결**이다. 여기에 하나 추가:
+
+6. **`SyncManager.isNetworkReachable` 데이터 레이스**(PROGRESS 4.13) — `monitorQueue`에서 쓰고 메인에서 읽는다. 동기화가 하루 1회라 실害는 작지만 정식으로는 직렬 큐 경유가 필요하다. 4.2 수정 중 발견했고 의도적으로 범위 밖에 뒀다.
+
+---
+
 ## 2026-08-15
 
 ### 완료된 작업
