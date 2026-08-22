@@ -23,7 +23,6 @@ final class SyncManager {
 
     func handleAppBecameActive(now: Date = Date()) {
         guard shouldAttemptSync(now: now) else { return }
-        recordSyncAttempt(now: now)
         guard isNetworkReachable else { return }
         guard !isSyncing else { return }
         isSyncing = true
@@ -31,6 +30,10 @@ final class SyncManager {
             guard let self else { return }
             switch result {
             case .success:
+                // 도달성과 인증이 실제로 확인된 뒤에 기록한다. 이 호출이 앞에 있으면
+                // 활성화 시점에 오프라인이거나 인증이 실패했을 때 그날치 시도가 소진돼,
+                // 이후 온라인이 돼도 다음 KST 날짜가 될 때까지 재시도하지 않는다.
+                self.recordSyncAttempt(now: now)
                 self.flushQueue { [weak self] in
                     self?.isSyncing = false
                 }

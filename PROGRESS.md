@@ -3,7 +3,7 @@
 작업 세션 사이의 인계 문서. 상태가 바뀌면 이 파일을 갱신한다.
 기능 명세는 [SPEC.md](SPEC.md), 빌드 명령·컨벤션은 [CLAUDE.md](CLAUDE.md), 세션별 인수인계는 [HANDOVER.md](HANDOVER.md).
 
-**최종 갱신: 2026-08-15** (레거시 점검 리포트 반영 + git 저장소 도입)
+**최종 갱신: 2026-08-22** (4.0 · 4.2 · 4.10 수정 — `fix/session-lifecycle-and-sync`)
 
 ---
 
@@ -72,17 +72,17 @@ xcodebuild -project "Sequential Timer.xcodeproj" -scheme "Sequential Timer" \
 
 우선순위 순. 각 항목은 코드에서 확인한 사실이다. 4.0 및 4.9~4.12는 2026-08-15 `/audit-legacy` 점검에서 새로 발견한 것으로, 전체 근거는 [audit-report-2026-08-15.md](audit-report-2026-08-15.md)에 있다.
 
-### 4.0 auto 모드 완료 후 `finishSession()`이 매초 재실행된다 ⚠️ 최우선
+### 4.0 auto 모드 완료 후 `finishSession()`이 매초 재실행된다 ✅ 해결 (2026-08-22)
 `finishSession`(TimerRunningView.swift:448-465)이 `SessionStore.clear()`만 하고 `sessionState`(@State)는 non-nil · `isPaused == false`로 남긴다. 완료 알럿이 떠 있는 동안 1초 타이머가 계속 돌아 `onReceive` 가드(281줄)를 통과 → `syncDisplay` → 575-580줄에서 **매 초 `finishSession()` 재호출**. 그때마다 `updateSession(endedAt: Date())`가 실행돼 **Core Data의 종료 시각이 알럿을 띄워둔 시간만큼 계속 뒤로 밀리고**, 그 값이 `actualDurationSeconds`로 Firestore에 올라간다.
-→ `stopSession`(440줄)은 `sessionState = nil`을 하는데 `finishSession`만 빠져 있다. 한 줄로 대칭을 맞추면 된다.
+→ **수정 완료(`5f21f11`)**: `finishSession`에 `sessionState = nil`을 추가해 `stopSession`과 대칭을 맞췄다. `onReceive` 가드(`sessionState?.isPaused == false`)가 `nil`에서 거짓이 되므로 재진입 경로가 끊긴다. `remainingSeconds`/`currentStepIndex`는 별도 `@State`라 초기화되지 않아 완료 알럿 뒤 화면은 마지막 값에서 정지한다.
 
 ### 4.1 `ABANDONED` 세션의 `completedStepCount`가 항상 0
 `CoreDataManager.createSessionStep`(CoreDataManager.swift:200)은 **어디서도 호출되지 않아** `SessionStep` 레코드가 만들어지지 않는다. 그런데 `SessionSummaryBuilder.resolveCompletedStepCount`(SyncBuilders.swift:125)는 중도 포기 세션의 완료 단계 수를 `session.steps`에서 센다 → 항상 빈 집합 → 0. 업로드되는 중도 포기 통계가 무의미하다.
 → 실행 중 단계 완료 시 `SessionStep`을 기록하거나, `SessionState.currentStepIndex`로 대체 산출해야 한다.
 
-### 4.2 오프라인이면 그날 동기화가 통째로 스킵된다
+### 4.2 오프라인이면 그날 동기화가 통째로 스킵된다 ✅ 해결 (2026-08-22)
 `SyncManager.handleAppBecameActive`(SyncManager.swift:24-27)가 **네트워크 도달성을 확인하기 전에** `recordSyncAttempt`로 오늘 날짜를 먼저 기록한다. 앱 활성화 시점에 오프라인이면 그날치 시도가 소진되고, 이후 온라인이 돼도 **다음 KST 날짜가 될 때까지 재시도하지 않는다.** 인증 실패도 같은 결과.
-→ 실제 시도(또는 성공) 시점에만 기록하거나, 네트워크 복구 시 재시도 훅을 붙여야 한다.
+→ **수정 완료(`f732265`)**: `recordSyncAttempt`를 `ensureAuth` 성공 분기 안으로 옮겼다. `flushQueue` 완료 시점이 아니라 인증 성공 시점을 쓴 이유는, `flushQueue`의 completion이 개별 업로드 실패와 무관하게 호출돼 사실상 동등하면서도 백엔드가 계속 에러를 낼 때 매 활성화마다 flush를 반복하는 상황을 피할 수 있기 때문. 실패 항목은 `markFailed`로 큐에 남아 다음 날 재시도된다.
 
 ### 4.3 마이그레이션 실패 시 사용자 데이터가 조용히 삭제된다
 `PersistenceController.init`(PersistenceController.swift:19-42)은 스토어 로드 실패 시 `destroyPersistentStore` 후 새로 만든다. 경량 마이그레이션이 불가능한 모델 변경을 하면 **경고 없이 전체 데이터가 날아간다.** Core Data 모델을 건드릴 때 반드시 인지할 것.
@@ -111,14 +111,18 @@ xcodebuild -project "Sequential Timer.xcodeproj" -scheme "Sequential Timer" \
 `NotificationModeSheet.startRoutine`(165-166줄)은 `lastUsedSound` / `lastUsedVibration`에 저장하는데, `loadLastUsedSettings`(154-159줄)는 **`defaultNotificationSound` / `defaultNotificationVibration`(설정 화면 기본값)** 을 읽는다. 그래서 "기본"과 "이전 설정" 버튼이 사운드·진동 **종류**에 대해 같은 값을 넣고, on/off 플래그만 다르다. 반면 `TimerRunningView.loadLastNotificationConfiguration`(327-343줄)은 정반대로 `lastUsed*`를 신뢰한다 — 같은 키를 두 화면이 다르게 취급.
 → 4.4(번들 사운드 부재)와 묶어 "알림음 선택을 살릴지 없앨지"를 함께 결정해야 한다. (2026-08-15 발견)
 
-### 4.10 정지·완료 시 반복 알림음이 취소되지 않는다
-`maybeShowManualAlert`가 `playNotificationRepeating(count: 5, interval: 2.2)`로 예약한 `DispatchWorkItem` 최대 5개를 `stopSession` / `finishSession` 어느 쪽도 취소하지 않는다. 정지 후 화면을 닫아도 최대 ~9초간 소리가 이어진다. `startNextStepFromManualAlert`(869줄)와 `handleManualAlertLater`(900줄)에는 취소가 있어 **경로별로 비대칭**. (2026-08-15 발견)
+### 4.10 정지·완료 시 반복 알림음이 취소되지 않는다 ✅ 해결 (2026-08-22)
+`maybeShowManualAlert`가 `playNotificationRepeating(count: 5, interval: 2.2)`로 예약한 `DispatchWorkItem` 최대 5개를 `stopSession` / `finishSession` 어느 쪽도 취소하지 않는다. 정지 후 화면을 닫아도 최대 ~9초간 소리가 이어진다. `startNextStepFromManualAlert`(869줄)와 `handleManualAlertLater`(900줄)에는 취소가 있어 **경로별로 비대칭**이었다. (2026-08-15 발견)
+→ **수정 완료(`e1bf17a`)**: 두 함수에 `cancelManualAlertNotifications()`를 추가. `startNextStepFromManualAlert`의 마지막 단계 분기는 취소 → `finishSession` 순서라 중복 호출이 되지만 `cancel()`은 멱등이라 무해해 그대로 뒀다.
 
 ### 4.11 manual 모드 `waitingForNext`에서 재생 버튼이 무동작
 `resumeSession`(410-427줄)이 `stepRunState`만 `.running`으로 되돌리고 **단계 인덱스를 진행시키지 않아** 곧바로 같은 대기 상태로 복귀한다. 다음 단계로 가는 경로는 알럿의 "지금 시작"뿐인데 알럿은 단계당 1회만 뜬다(`hasShownManualAlertForStep`). 알럿을 놓친 사용자가 갇히는지는 실행 확인 필요. 같은 맥락에서 "나중에"(881-903줄)는 이름과 달리 **단계를 진행시킨다** — 의도된 정의를 SPEC.md에서 확인할 것. (2026-08-15 발견)
 
 ### 4.12 세션 상태를 문자열 리터럴로 기록한다
 쓰는 쪽(CoreDataManager.swift:144, TimerRunningView.swift:404·424·432·451)은 `"RUNNING"` / `"PAUSED"` / `"COMPLETED"` / `"ABANDONED"` 리터럴, 읽는 쪽(SyncBuilders.swift:94·126)은 `SessionStatus` enum. enum이 있는데 쓰기 경로가 쓰지 않아, 오타 한 글자면 빌더가 `nil`을 반환해 **업로드가 조용히 스킵**된다. (2026-08-15 발견)
+
+### 4.13 `isNetworkReachable`에 데이터 레이스가 있다
+`SyncManager.isNetworkReachable`(SyncManager.swift:15)을 `NWPathMonitor`의 `pathUpdateHandler`가 `monitorQueue`에서 쓰고, `handleAppBecameActive`는 메인에서 읽는다. 동기화가 하루 1회뿐이라 실害는 작지만 정식으로는 락이나 직렬 큐 경유가 필요하다. 4.2를 고치면서 확인했고, **의도적으로 범위 밖으로 뒀다.** (2026-08-22 발견)
 
 ---
 
@@ -148,10 +152,10 @@ xcodebuild -project "Sequential Timer.xcodeproj" -scheme "Sequential Timer" \
 ## 6. 다음 세션 제안 순서
 
 1. ~~버전 관리 확보~~ ✅ 2026-08-15 완료 — GitHub 저장소 연결 + PR #3 `main` 병합 (`b244327`)
-2. **4.0 `finishSession`에 `sessionState = nil` 추가** — 한 줄, 데이터 오염이 계속되는 중이라 최우선
-3. 4.2 동기화 재시도 로직 수정 (사용자 데이터 유실 위험 없음, 효과 큼)
-4. 4.10 정지·완료 시 반복 알림음 취소 (한 줄, 체감 큰 버그)
-5. 4.9 + 4.4 알림음 선택 방향 결정 → 리소스 추가 또는 선택지 제거
+2. ~~4.0 `finishSession`에 `sessionState = nil` 추가~~ ✅ 2026-08-22 완료 (`5f21f11`)
+3. ~~4.2 동기화 재시도 로직 수정~~ ✅ 2026-08-22 완료 (`f732265`)
+4. ~~4.10 정지·완료 시 반복 알림음 취소~~ ✅ 2026-08-22 완료 (`e1bf17a`)
+5. **4.9 + 4.4 알림음 선택 방향 결정 → 리소스 추가 또는 선택지 제거** ← 다음 차례. 제품 결정이 선행돼야 하며 2026-08-22 시점에도 **미정**
 6. 저위험 정리: 4.7 앱 버전, 5장 데드 코드 제거
 7. 테스트 타겟 추가 + `SequentialTimerEngine` / `SyncBuilders` 단위 테스트 (5장의 `resolveProgress` 정리를 먼저)
 8. 4.1 `SessionStep` 기록 (Core Data 모델 변경 없음 — 4.3 위험 없음)
