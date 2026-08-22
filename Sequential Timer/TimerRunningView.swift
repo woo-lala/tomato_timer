@@ -437,6 +437,7 @@ struct TimerRunningView: View {
             SyncManager.shared.enqueueSession(sessionId: state.sessionId)
         }
         cancelPendingNotifications(for: state.sessionId, stepCount: timeline.count)
+        cancelManualAlertNotifications()
         sessionState = nil
         hasSyncedOnce = false
         lastSyncedStepIndex = nil
@@ -456,6 +457,7 @@ struct TimerRunningView: View {
             SyncManager.shared.enqueueSession(sessionId: state.sessionId)
         }
         cancelPendingNotifications(for: state.sessionId, stepCount: timeline.count)
+        cancelManualAlertNotifications()
         // 세션을 비우지 않으면 완료 알럿이 떠 있는 동안 1초 타이머가 계속 돌아
         // syncDisplay → finishSession 이 매초 재진입하고, updateSession(endedAt:)이
         // 반복 실행돼 종료 시각이 뒤로 밀린다. stopSession 과 동일하게 정리한다.
